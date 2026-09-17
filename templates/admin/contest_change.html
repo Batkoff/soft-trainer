@@ -1,0 +1,16 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+{% if original and original.status != 'draft' %}
+<section class="admin-edit-note">
+  <div><strong>{{ original.phase_label }}</strong><p>{{ original.availability_message }}</p></div>
+  <div class="admin-actions-row">
+  {% if original.status == 'active' and user.is_superuser %}
+    <a class="button default" href="{% url 'admin:trainer_contest_close' original.pk %}">{% if original.phase == 'closing' %}Проверить и зафиксировать итоги{% else %}Завершить досрочно{% endif %}</a>
+  {% endif %}
+  <a class="button" href="{% url 'leaderboard' %}?contest={{ original.pk }}">{% if original.status == 'finished' %}Итоги в архиве{% else %}Рейтинг{% endif %} →</a>
+  {% if user.is_superuser %}<a class="button" href="{% url 'admin:trainer_contest_add' %}">Создать следующий конкурс</a>{% endif %}
+  </div>
+</section>
+{% endif %}
+{{ block.super }}
+{% endblock %}

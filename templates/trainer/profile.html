@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">ЛИЧНЫЕ НАСТРОЙКИ</p><h1>Мой профиль</h1><p class="muted">Так вас видят коллеги в рейтинге.</p></div><span class="profile-avatar" aria-hidden="true">{{ current_avatar }}</span></div>
+<div class="result-grid">
+  <section class="card form-card"><h2>Имя и аватар</h2><form method="post">{% csrf_token %}{{ form.as_p }}<p class="small muted">Пустой ник — используем имя из учётной записи. Пока можно выбрать аватар из набора.</p><button type="submit" class="button primary">Сохранить профиль</button></form></section>
+  <section class="card form-card"><h2>Вход в аккаунт</h2><p class="muted">Смена логина и пароля появится после выбора системы авторизации. Сейчас эти поля — заглушки.</p><p><label for="profile-login">Логин</label><input id="profile-login" value="{{ user.username }}" disabled></p><p><label for="profile-password">Новый пароль</label><input id="profile-password" type="password" placeholder="Пока недоступно" disabled></p><button class="button" disabled>Изменить данные входа</button><p class="small muted">Если нужно восстановить доступ сейчас, обратитесь к администратору.</p></section>
+</div>
+{% endblock %}

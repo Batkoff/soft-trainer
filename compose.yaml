@@ -1,0 +1,65 @@
+name: soft-trainer
+x-app: &app
+  build: .
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql://trainer:${POSTGRES_PASSWORD:?Run prepare_demo.py}@db:5432/trainer
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: trainer
+      POSTGRES_USER: trainer
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run prepare_demo.py}
+    volumes: ["database:/var/lib/postgresql/data"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trainer -d trainer"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  init:
+    <<: *app
+    command: python scripts/initialize.py
+    restart: "no"
+    volumes: ["static:/app/staticfiles"]
+    depends_on:
+      db: {condition: service_healthy}
+  web:
+    <<: *app
+    depends_on:
+      init: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/',timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  worker:
+    <<: *app
+    command: python manage.py procrastinate worker --concurrency 2
+    depends_on:
+      init: {condition: service_completed_successfully}
+  proxy:
+    image: caddy:2-alpine
+    # На VPS сайт должен быть доступен снаружи. Локально можно задать
+    # HTTP_BIND=127.0.0.1, если перед Caddy используется другой прокси.
+    ports: ["${HTTP_BIND:-0.0.0.0}:${HTTP_PORT:-8080}:80"]
+    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro", "static:/srv/static:ro"]
+    depends_on:
+      web: {condition: service_healthy}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+volumes:
+  database:
+  static:

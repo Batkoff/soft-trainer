@@ -1,0 +1,21 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-heading"><div><p class="eyebrow">{{ today|date:'j E, l' }}</p><h1>Время для практики,<br>{{ current_display_name }}</h1><p class="muted">Смысл уже есть. Сделайте ответ понятным и человечным.</p></div></div>
+{% include 'trainer/contest_select.html' %}
+{% if contest %}<div class="home-grid"><section class="daily-card"><div class="card-top"><span class="eyebrow">СЕГОДНЯ</span><span class="badge neutral">{{ contest.time_limit_seconds }} сек. на ответ</span></div>
+<div class="daily-count">{{ submitted }}<span>/ {{ contest.daily_limit }}</span></div><h2>сообщений отправлено</h2>
+<div class="slot-strip" aria-label="Прогресс тренировки">{% for slot in slots %}<div class="slot {% if slot.attempt.status == 'graded' %}done{% elif slot.attempt %}started{% endif %}">{% if slot.attempt.status == 'graded' %}✓{% else %}{{ slot.number }}{% endif %}</div>{% endfor %}</div>
+{% if can_start %}<form method="post" action="{% url 'start' contest.pk %}">{% csrf_token %}<button type="submit" class="button primary">{% if writing %}Продолжить задание{% else %}Начать задание{% endif %}<span>→</span></button></form>
+{% elif not contest.accepts_answers %}<p class="complete-note">{{ contest.availability_message }}</p>
+{% elif not is_participant %}<p class="complete-note">Вы не включены в участников этого конкурса.</p>{% if user.is_staff %}<a class="button primary" href="{% url 'sandbox' %}">Начать тренировку в песочнице →</a><p class="small muted">Для участия в рейтинге добавьте свой аккаунт в новый конкурс до его запуска.</p>{% endif %}
+{% else %}<p class="complete-note">На сегодня всё. Возвращайтесь завтра.</p>{% endif %}
+{% if can_start %}<p class="small muted">Таймер запускается после открытия задания.</p>{% endif %}</section>
+<section class="contest-card"><p class="eyebrow">{{ contest.phase_label }}</p><h2>{{ contest.title }}</h2><p class="muted">{{ contest.starts_at|date:'d.m H:i' }} — {{ contest.effective_end|date:'d.m.Y H:i' }} МСК</p>
+<div class="stat-pair"><div><span class="stat-value">{% if standing %}{{ standing.place }}{% else %}—{% endif %}</span><span class="muted">место в рейтинге</span></div><div><span class="stat-value">{{ standing.points|default:0 }}</span><span class="muted">{% if grading_is_demo %}тестовых баллов{% else %}баллов за конкурс{% endif %}</span></div></div>
+<div class="contest-footer"><span>Средняя оценка <strong>{{ average }}</strong></span><a href="{% url 'leaderboard' %}?contest={{ contest.pk }}">Открыть рейтинг ↗</a></div></section></div>
+<div id="recent-area" {% if pending %}hx-get="{% url 'home' %}?contest={{ contest.pk }}" hx-trigger="every 5s" hx-select="#recent-area" hx-swap="outerHTML"{% endif %}>
+{% if pending %}<div class="queue-note" role="status"><span class="spinner"></span><div><strong>На проверке: {{ pending }}</strong><span>Ответы сохранены. Можно продолжить тренировку или закрыть страницу.</span></div><a href="">Обновить</a></div>{% endif %}
+<section class="section"><div class="section-heading"><h2>Последние ответы</h2><span class="muted small">{{ contest.title }}</span></div>
+{% if recent %}<div class="answer-list">{% for item in recent %}<a class="answer-row" href="{% url 'attempt' item.pk %}"><span class="row-icon">↗</span><div><strong>{{ item.snapshot.title }}</strong><span class="muted small">{{ item.submitted_at|date:'d.m · H:i' }}{% if item.timed_out %} · по таймеру{% endif %}</span></div><span class="badge {{ item.status }}">{{ item.get_status_display }}</span><span class="row-score">{% if item.score != None %}{{ item.score }}<small>/100</small>{% else %}—{% endif %}</span></a>{% endfor %}</div>
+{% else %}<div class="empty"><span class="empty-icon">✎</span><h3>Первый ответ — впереди</h3><p>Начните задание. Здесь появятся ваш ответ и результат проверки.</p></div>{% endif %}</section></div>
+{% else %}<div class="empty"><h2>Пока нет доступного конкурса</h2><p>Администратор добавит вас в конкурс, и здесь появятся задания.</p>{% if user.is_staff %}<a class="button primary" href="{% url 'admin:trainer_contest_changelist' %}">Настроить конкурс</a> <a class="button" href="{% url 'sandbox' %}">Тренироваться в песочнице →</a>{% endif %}</div>{% endif %}
+{% endblock %}

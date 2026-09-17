@@ -1,0 +1,19 @@
+<section class="contest-navigation" aria-label="Выбор конкурса">
+  <div class="contest-nav-heading"><span class="eyebrow">{% if archive_mode %}АРХИВ КОНКУРСОВ{% else %}КОНКУРСЫ{% endif %}</span>
+    {% if archive_mode %}<a href="{{ request.path }}">Текущие конкурсы →</a>
+    {% elif archived_contests %}<a href="{% url 'leaderboard' %}?archive=1">Завершённые конкурсы ↗</a>{% endif %}
+  </div>
+  {% if archive_mode %}
+    <div class="contest-tabs archive-tabs">{% for item in archived_contests %}
+      <a class="contest-tab {% if item.pk == contest.pk %}selected{% endif %}" href="?contest={{ item.pk }}" {% if item.pk == contest.pk %}aria-current="page"{% endif %}>
+        <span class="contest-phase finished">Итоги · {{ item.finalized_at|date:'d.m.Y' }}</span><strong>{{ item.title }}</strong>
+        <small>{{ item.starts_at|date:'d.m' }} — {{ item.effective_end|date:'d.m.Y' }}</small>
+      </a>{% endfor %}</div>
+  {% elif contests %}
+    <div class="contest-tabs">{% for item in contests %}
+      <a class="contest-tab {% if item.pk == contest.pk %}selected{% endif %}" href="?contest={{ item.pk }}" {% if item.pk == contest.pk %}aria-current="page"{% endif %}>
+        <span class="contest-phase {{ item.phase }}">{{ item.phase_label }}</span><strong>{{ item.title }}</strong>
+        <small>{% if item.phase == 'scheduled' %}Старт {{ item.starts_at|date:'d.m H:i' }}{% else %}До {{ item.effective_end|date:'d.m H:i' }}{% endif %} МСК</small>
+      </a>{% endfor %}</div>
+  {% endif %}
+</section>

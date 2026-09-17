@@ -1,0 +1,182 @@
+/* Тема штатной админки Django. Разметкой форм и поведением виджетов управляет Django. */
+:root, html[data-theme="light"], html[data-theme="dark"] {
+  color-scheme:light;
+  --primary:#ffdd2d; --secondary:#202125; --accent:#202125;
+  --primary-fg:#202125; --body-fg:#202125; --body-bg:#f5f6f7;
+  --body-quiet-color:#626975; --body-medium-color:#414854; --body-loud-color:#202125;
+  --header-color:#202125; --header-branding-color:#202125; --header-bg:#fff; --header-link-color:#202125;
+  --breadcrumbs-fg:#626975; --breadcrumbs-link-fg:#202125; --breadcrumbs-bg:#f5f6f7;
+  --link-fg:#304f85; --link-hover-color:#172f59; --link-selected-fg:#202125;
+  --hairline-color:#e9ebef; --border-color:#dce0e6; --darkened-bg:#f6f7f9;
+  --selected-bg:#eef1f6; --selected-row:#fff8d5;
+  --button-fg:#202125; --button-bg:#edf0f4; --button-hover-bg:#e0e5ec;
+  --default-button-bg:#ffdd2d; --default-button-hover-bg:#f0ce1a;
+  --close-button-bg:#edf0f4; --close-button-hover-bg:#dce1e9;
+  --delete-button-bg:#b73340; --delete-button-hover-bg:#932a35;
+  --object-tools-fg:#202125; --object-tools-bg:#ffdd2d; --object-tools-hover-bg:#f0ce1a;
+  --message-success-bg:#eaf5ef; --message-warning-bg:#fff6d2; --message-error-bg:#fcecef; --error-fg:#aa2938;
+  --font-family-primary:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+}
+body {font-size:15px; line-height:1.55}
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {outline:3px solid #526fb3; outline-offset:3px}
+#header {padding:24px 36px 0; border-bottom:1px solid var(--border-color); gap:20px; flex-wrap:wrap}
+#header .admin-brand {display:flex; align-items:center; gap:12px; color:#202125; font-size:25px; font-weight:750; line-height:1.15; text-decoration:none}
+.admin-brand-mark {width:43px; height:43px; border-radius:13px; display:grid; place-items:center; background:#ffdd2d; font-size:32px}
+.admin-brand small {display:block; margin-top:5px; color:#626975; font-size:11px; font-weight:500; letter-spacing:.2px}
+#user-tools.admin-account {display:flex; align-items:center; gap:18px; font-size:13px; letter-spacing:0; text-transform:none; padding:0}
+#header #user-tools a, #header #logout-form button {border:0; color:#626975; font:inherit; padding:0}
+.admin-account-name {font-weight:600; color:#202125}
+.admin-quicknav {display:flex; align-items:center; gap:8px; flex-basis:100%; padding:0 0 12px}
+#header .admin-quicknav a {border-radius:9px; padding:9px 14px; font-size:14px; color:#555e6b}
+#header .admin-quicknav a:hover, #header .admin-quicknav a[aria-current] {background:#fff5bc; color:#202125}
+.admin-back-link {margin-left:auto}
+div.breadcrumbs {padding:16px 36px; font-size:13px; border-bottom:1px solid #e9ebef}
+div.breadcrumbs a {color:#414854}
+#content {padding:30px 36px 48px}
+#content>h1 {font-size:30px; font-weight:700; line-height:1.2; letter-spacing:-.7px; margin:0 0 25px; color:#202125}
+#content>h2 {font-size:16px; color:#626975}
+.admin-footer {padding:20px 36px; margin:0; border-top:1px solid var(--border-color); color:#727a86; font-size:12px}
+
+/* Главная: карточки используют список моделей с разрешениями текущего пользователя. */
+.practice-dashboard #content {width:100%; max-width:1440px; box-sizing:border-box; margin:0 auto}
+.practice-dashboard #content-start {min-width:0; width:100%}
+.admin-edit-note {display:flex; align-items:center; flex-wrap:wrap; gap:20px; padding:22px; margin-bottom:25px; background:#fff7cd; border:1px solid #ebdda5; border-radius:14px}
+.admin-edit-note>div {flex:1; min-width:230px}
+.admin-edit-note p {margin:7px 0 0; color:#626975; font-size:13px}
+.admin-edit-note form {margin:0}
+.admin-welcome {display:flex; align-items:center; justify-content:space-between; gap:28px; padding:32px; background:#fff; border:1px solid #e4e7ec; border-radius:20px}
+.admin-eyebrow {font-size:11px; font-weight:700; letter-spacing:1.5px; color:#727a86; margin:0 0 12px}
+.admin-welcome h1 {font-size:34px; font-weight:700; line-height:1.2; letter-spacing:-.7px; margin:0 0 12px; color:#202125}
+.admin-welcome p:last-child {font-size:15px; color:#626975; margin:0}
+a.admin-primary {display:inline-flex; padding:13px 18px; background:#ffdd2d; border-radius:11px; font-weight:600; font-size:14px; white-space:nowrap; color:#202125}
+a.admin-primary:hover {background:#f0ce1a}
+.admin-workflow {display:flex; gap:28px; padding:24px 4px 6px; color:#626975; font-size:13px; flex-wrap:wrap}
+.admin-workflow span {display:flex; align-items:center; gap:10px}
+.admin-workflow b {display:grid; place-items:center; width:26px; height:26px; background:#e9ecf1; color:#596271; border-radius:8px; font-size:12px}
+.admin-section {margin-top:30px}
+.admin-section-heading {display:flex; align-items:center; justify-content:space-between; margin:0 0 15px}
+.admin-section-heading h2 {font-size:21px; font-weight:650; color:#202125; margin:0}
+.admin-section-heading>span {color:#727a86; font-size:12px}
+.admin-card-grid {display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px}
+.admin-section-card {display:flex; flex-direction:column; background:#fff; padding:23px; border:1px solid #e1e5eb; border-radius:16px; min-width:0}
+.admin-section-card:hover {border-color:#b8c1d0; box-shadow:0 4px 14px #20212506}
+.admin-card-top {display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:17px}
+.admin-card-icon {display:grid; place-items:center; width:38px; height:38px; background:#f0f2f6; border-radius:11px; color:#536785; font-size:23px}
+.admin-card-add {font-size:12px; font-weight:550}
+.admin-section-card h3 {font-size:17px; margin:0 0 9px; font-weight:650}
+.admin-section-card h3 a {color:#202125}
+.admin-section-card p {color:#626975; font-size:13px; margin:0 0 20px}
+.admin-card-open {display:flex; justify-content:space-between; margin-top:auto; border-top:1px solid #edf0f3; padding-top:14px; font-size:13px; font-weight:600}
+
+/* Таблицы, фильтры и меню. Селекторы навигации сохраняют механизм сворачивания Django. */
+.module {border:1px solid #e1e5eb; border-radius:14px; background:#fff; margin-bottom:24px; overflow:hidden}
+.module h2, .module caption, .inline-group h2 {background:#f4f6f9; color:#414854; padding:14px 18px; font-size:14px; font-weight:650; letter-spacing:0; text-transform:none}
+.module h2 a, .module caption a, a.section:link, a.section:visited {color:#414854}
+td, th {font-size:14px; padding:14px 15px; vertical-align:middle; border-bottom-color:#e9ecf1}
+thead th {font-weight:600; color:#626975; background:#f6f7f9; text-transform:none}
+#changelist {border:0; border-radius:0; background:transparent; gap:20px}
+#changelist-form {min-width:0}
+#changelist .results {border:1px solid #e1e5eb; border-radius:13px; background:#fff}
+#changelist table thead th {padding:6px 10px}
+#changelist table tbody tr:hover {background:#fafbfd}
+#changelist #toolbar, #changelist .actions {background:#fff; padding:14px 16px; border:1px solid #e1e5eb; border-radius:12px; margin-bottom:14px}
+#changelist .actions label {font-size:13px}
+#changelist .actions select {min-height:36px; height:auto; border-radius:8px; padding:5px 8px}
+#changelist .actions .button {padding:8px 13px; border-radius:8px; font-size:13px; min-height:36px}
+#changelist-filter {border:1px solid #e1e5eb; border-radius:13px; background:#fff; overflow:hidden}
+#changelist-filter h2 {background:#f4f6f9; color:#414854; padding:16px 18px; font-size:14px}
+#changelist-filter h3 {font-size:13px; font-weight:650; padding:0 18px}
+#changelist-filter ul {padding:0 18px 14px}
+#changelist-filter li.selected {border-left:3px solid #e4bc00; padding-left:10px; margin-left:-13px}
+#changelist-filter li a {font-size:13px; padding:4px 0; color:#626975}
+#changelist-filter li.selected a {color:#202125; font-weight:650}
+#changelist .paginator {background:transparent; border:0; padding:20px 4px; font-size:13px}
+.paginator a:link, .paginator a:visited {background:#fff; border-radius:7px; color:#304f85; padding:6px 10px}
+.object-tools {margin-bottom:18px}
+.object-tools a:link, .object-tools a:visited {padding:11px 18px; border-radius:10px; font-size:13px; font-weight:600; letter-spacing:0; text-transform:none; background-image:none}
+.object-tools a.addlink {padding-right:18px}
+.admin-status {display:inline-flex; padding:4px 9px; border-radius:7px; font-size:12px; font-weight:600; white-space:nowrap; background:#edf0f4; color:#536071}
+.admin-status-active, .admin-status-published, .admin-status-graded {background:#e9f5ee; color:#21663f}
+.admin-status-writing, .admin-status-queued, .admin-status-evaluating, .admin-status-retry {background:#fff4cc; color:#755a00}
+.admin-status-review {background:#fcecef; color:#9d2c3e}
+.admin-employee-login {display:block; font-size:11px; color:#727a86; font-weight:400; margin-top:3px}
+#nav-sidebar {background:#fff}
+#nav-sidebar .module {border:0; border-radius:0; margin:0 0 15px}
+#nav-sidebar .module caption {font-size:11px; padding:18px 15px 10px; background:#fff; color:#7a828e}
+#nav-sidebar .module caption a {color:#727a86!important}
+#nav-sidebar td, #nav-sidebar th {font-size:13px; padding:11px 14px; border:0}
+#nav-sidebar th a {color:#535e6f; font-weight:500}
+#nav-sidebar .current-model {background:#fff5bc}
+#nav-sidebar .current-model th a {color:#202125; font-weight:650}
+#nav-filter {width:calc(100% - 24px); margin:14px 12px; padding:9px 10px; border-radius:8px; background:#f6f7f9; font-size:12px}
+
+/* Поля: размеры составных виджетов выбора участников оставлены Django. */
+input, textarea, select, .form-row input, .form-row textarea, .form-row select {font:inherit}
+input[type=text], input[type=password], input[type=email], input[type=number], input[type=url], input[type=search], textarea, select {background:#fff; border:1px solid #d7dce5; border-radius:9px; padding:10px 12px; color:#202125}
+textarea {max-width:100%; box-sizing:border-box; line-height:1.6}
+select {min-height:40px}
+input[type=checkbox], input[type=radio] {accent-color:#556c94}
+.form-row {padding:20px 22px; border-bottom:1px solid #edf0f3}
+.aligned label {font-weight:550; color:#414854; padding-top:9px}
+.aligned .form-row .help {color:#727a86; font-size:12px; line-height:1.6}
+.readonly {line-height:1.65; overflow-wrap:anywhere}
+.selector .selector-available h2, .selector .selector-chosen h2 {background:#f3f5f8; color:#414854; border-color:#dce0e6}
+.selector select {border-radius:0 0 9px 9px; font-size:13px}
+.selector .selector-filter {background:#fafbfd; padding:9px; border-color:#dce0e6}
+.selector .selector-filter input {padding:6px 8px; border-radius:6px}
+.submit-row {background:#fff; border:1px solid #e1e5eb; padding:18px 22px; border-radius:13px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.button, input[type=submit], input[type=button], .submit-row input, a.button {border-radius:9px; padding:11px 16px; font-size:13px; font-weight:600; line-height:1.4}
+.submit-row input {margin:0}
+.submit-row a.deletelink {height:auto; margin:0; border-radius:9px; padding:11px 16px; color:#fff}
+.deletelink-box {margin:0 0 0 auto!important}
+.errornote, ul.errorlist, ul.messagelist li {border-radius:10px; font-size:14px}
+.errornote {padding:15px 18px}
+ul.messagelist li {margin:12px 36px; padding-top:14px; padding-bottom:14px}
+body.login {background:#f5f6f7}
+.login #container {border:1px solid #e1e5eb; border-radius:20px; margin-top:70px; width:420px; max-width:calc(100% - 32px); box-sizing:border-box; box-shadow:0 10px 40px #20212508}
+.login #header {padding:26px; justify-content:center}
+.login #content {padding:26px}
+.login .submit-row {border:0; padding:12px 0 0; justify-content:stretch}
+.login .submit-row input {width:100%}
+
+@media(max-width:1100px) {
+  .admin-card-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .admin-welcome {align-items:flex-start; flex-direction:column; gap:22px}
+  #content {padding:26px}
+}
+@media(max-width:767px) {
+  #header {padding:18px 18px 0; align-items:center; gap:20px}
+  #user-tools.admin-account {gap:12px; text-align:left; margin:0; width:auto}
+  .admin-account-name {display:none}
+  .admin-quicknav {gap:4px; flex-wrap:wrap}
+  #header .admin-quicknav a {font-size:12px; padding:8px 10px}
+  .admin-back-link {margin-left:0}
+  #content {padding:22px 18px}
+  #content>h1 {font-size:26px}
+  div.breadcrumbs {padding:13px 18px}
+  .admin-welcome {padding:24px; border-radius:15px}
+  .admin-welcome h1 {font-size:28px}
+  .admin-welcome p:last-child {font-size:14px}
+  .admin-workflow {gap:12px; flex-direction:column; padding-top:20px}
+  .admin-card-grid {grid-template-columns:1fr}
+  .admin-section-card {padding:22px}
+  .form-row, .submit-row {padding:16px}
+  .submit-row input {width:100%; box-sizing:border-box}
+  .admin-footer {padding:18px}
+  ul.messagelist li {margin:12px 18px}
+}
+/* Цвет дублируется текстом: историю повторов можно понять без цвета. */
+.admin-status-success,.admin-status-running,.admin-status-finished {background:#e6f5ed;color:#176846}
+.admin-status-failed {background:#fce8e7;color:#a52c29}
+.admin-status-retry,.admin-status-closing,.admin-status-review {background:#fff2d4;color:#86550a}
+.admin-status-queued,.admin-status-scheduled {background:#eaf1fd;color:#315d99}
+.diagnostic-json {margin:0;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;background:#f5f7fa;border:1px solid var(--hairline-color);border-radius:10px;padding:16px;font:12px/1.65 ui-monospace,Consolas,monospace;max-height:650px;overflow:auto}
+.diagnostic-legend {padding:16px 20px;background:#fafbfc;border-bottom:1px solid var(--hairline-color)}
+.diagnostic-legend .admin-status {margin:0 5px 6px 0}
+.diagnostic-legend p {font-size:12px;line-height:1.6;color:var(--body-quiet-color);margin:4px 0 0;max-width:820px}
+.admin-actions-row {display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.admin-actions-row .button {white-space:normal;text-align:center}
+.admin-confirm {max-width:760px;padding:28px}
+.admin-confirm p {font-size:14px;line-height:1.7}
+.admin-confirm h2 {background:none;color:var(--body-fg);padding:0;margin-bottom:20px;font-size:22px}
+.field-prompt_pretty .readonly,.field-response_pretty .readonly,.field-request_pretty .readonly,.field-normalized_pretty .readonly,.field-pretty_details .readonly {min-width:0;flex:1}

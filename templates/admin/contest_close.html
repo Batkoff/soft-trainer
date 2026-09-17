@@ -1,0 +1,20 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<section class="module admin-confirm">
+  <h2>{{ contest.title }}</h2>
+  {% if contest.status == 'finished' %}
+    <p>Итоги уже зафиксированы.</p>
+    <a href="{% url 'leaderboard' %}?contest={{ contest.pk }}">Посмотреть итоговый рейтинг →</a>
+  {% elif contest.status == 'draft' %}
+    <p>Этот конкурс ещё не запущен.</p>
+  {% else %}
+    <p>Приём ответов остановится сразу. Сохранённые черновики отправятся на проверку.</p>
+    <p>В работе: <strong>{{ writing_count }}</strong>. Ожидают оценки или пересмотра: <strong>{{ pending_count }}</strong>.</p>
+    <p>Если все работы проверены, рейтинг сразу станет итоговым. Иначе он зафиксируется автоматически после проверки и решения спорных оценок. После фиксации конкурс уйдёт в архив.</p>
+    <form method="post">{% csrf_token %}
+      <div class="admin-actions-row"><button type="submit" class="button default">{% if contest.phase == 'closing' %}Зафиксировать, если всё проверено{% else %}Завершить конкурс сейчас{% endif %}</button>
+      <a class="button" href="{% url 'admin:trainer_contest_change' contest.pk %}">Вернуться</a></div>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

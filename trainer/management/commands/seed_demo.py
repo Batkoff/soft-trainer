@@ -1,0 +1,92 @@
+"""Учебные примеры вымышлены и не являются действующими регламентами банка."""
+import os
+from datetime import timedelta
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
+from django.utils import timezone
+from trainer.models import CalibrationCase, Contest, Exercise, demo_rubric
+from trainer.services import activate_contest
+
+EXAMPLES = [
+    ("Возврат ещё не пришёл", "Возвраты", "Почему возврат опять не пришёл? Мне вчера сказали ждать, сколько можно?",
+     "Возврат находится в обработке. Срок зачисления — до 3 рабочих дней. Ускорить операцию невозможно.",
+     "Возврат обрабатывается.\nСрок — до 3 рабочих дней.\nУскорение невозможно.",
+     "Если срок истечёт, предложить обратиться в поддержку для проверки.", "Обещать зачисление сегодня или ускорение."),
+    ("Комиссия по тарифу", "Тарифы", "Вы второй раз списали с меня комиссию. Мне опять самому разбираться?",
+     "Комиссия списана согласно тарифу. Возврат комиссии не предусмотрен.",
+     "Списание соответствует тарифу.\nВернуть комиссию нельзя.",
+     "Предложить объяснить, за какую операцию начислена комиссия.", "Обещать возврат или гарантировать отсутствие комиссий в будущем."),
+    ("Перевод отклонён", "Переводы", "Почему мой перевод отменился? Мне нужно срочно отправить деньги поставщику.",
+     "Перевод отклонён банком получателя. Повторить ту же операцию невозможно. Клиент может создать новый перевод.",
+     "Отклонил банк получателя.\nПовтор той же операции невозможен.\nМожно создать новый перевод.",
+     "Предложить создать новый перевод.", "Обещать, что новый перевод обязательно пройдёт, или назвать неподтверждённую причину отказа."),
+    ("Обращение рассматривается", "Обращения", "Я уже написал вам всё, почему до сих пор нет решения?",
+     "Обращение зарегистрировано. Рассмотрение занимает до 5 рабочих дней. Дополнительные документы сейчас не требуются.",
+     "Обращение зарегистрировано.\nСрок — до 5 рабочих дней.\nДокументы сейчас не нужны.",
+     "Объяснить срок ожидания.", "Обещать решение сегодня или просить дополнительные документы."),
+    ("Не хватает документа", "Документы", "Я отправил вам документы. Что ещё от меня нужно?",
+     "Для продолжения проверки необходима копия договора с контрагентом. Полученный счёт договор не заменяет. Документ можно приложить в этом чате.",
+     "Нужна копия договора.\nСчёт не заменяет договор.\nДоговор можно приложить в чат.",
+     "Пояснить, какой документ приложить и куда.", "Обещать завершение проверки сразу после загрузки документа."),
+    ("Повторное проведение операции", "Операции", "Вы отменили операцию, проведите её обратно!",
+     "Операция отменена по запросу клиента. Восстановить её нельзя. При необходимости клиент может создать новую операцию.",
+     "Отмена по запросу клиента.\nВосстановление невозможно.\nМожно создать новую операцию.",
+     "Предложить создать новую операцию.", "Обещать восстановление отменённой операции."),
+    ("Реквизиты для партнёра", "Счёт", "Контрагент просит реквизиты. Что ему отправить?",
+     "Реквизиты доступны в разделе «Реквизиты» личного кабинета. Их можно скачать и передать контрагенту. Пароль от кабинета передавать не нужно.",
+     "Раздел «Реквизиты» в кабинете.\nРеквизиты можно скачать.\nПароль передавать не нужно.",
+     "Понятно описать путь к разделу.", "Предлагать передать пароль или коды подтверждения."),
+    ("Платёж исполнен", "Платежи", "Передумал платить, отмените платёж прямо сейчас.",
+     "Платёж уже исполнен. Отменить его со стороны банка невозможно. Для возврата средств необходимо обратиться к получателю.",
+     "Платёж исполнен.\nБанк отменить его не может.\nПо возврату нужно обратиться к получателю.",
+     "Предложить связаться с получателем платежа.", "Гарантировать возврат получателем или обещать отмену банком."),
+]
+
+class Command(BaseCommand):
+    help = "Создать демо-конкурс, 5 сотрудников, администратора и примеры калибровки."
+
+    @transaction.atomic
+    def handle(self, *args, **options):
+        password = os.getenv("DEMO_PASSWORD", "")
+        if len(password) < 12:
+            raise CommandError("Задайте DEMO_PASSWORD длиной от 12 символов. Подойдёт scripts/prepare_demo.py.")
+        User = get_user_model()
+        admin_user, created = User.objects.get_or_create(username="admin", defaults={"first_name": "Администратор", "is_staff": True, "is_superuser": True})
+        if created:
+            admin_user.set_password(password)
+            admin_user.save()
+        employees = []
+        for number, (first, last) in enumerate([("Даниил", "Батков"), ("Вера", "Соколова"), ("Александр", "Морозов"), ("Анна", "Орлова"), ("Максим", "Лебедев")], 1):
+            user, created = User.objects.get_or_create(username=f"demo{number}", defaults={"first_name": first, "last_name": last})
+            if created:
+                user.set_password(password)
+                user.save()
+            employees.append(user)
+        exercises = []
+        for title, category, customer, hard, facts, allowed, forbidden in EXAMPLES:
+            item, _ = Exercise.objects.get_or_create(title=title, version=1, defaults={"category": category,
+                "customer_message": customer, "hard_answer": hard, "required_facts": facts,
+                "allowed_actions": allowed, "forbidden_promises": forbidden, "status": Exercise.Status.PUBLISHED})
+            exercises.append(item)
+        now = timezone.now()
+        contest, created = Contest.objects.get_or_create(title="Демо · Поддержка бизнеса", defaults={
+            "starts_at": now-timedelta(minutes=1), "ends_at": now+timedelta(days=30), "rubric": demo_rubric(),
+            "first_prize": 100, "second_prize": 70, "third_prize": 50})
+        if created:
+            # Администратор тоже может пройти демо-конкурс и проверить полный путь.
+            contest.participants.set([admin_user, *employees])
+            contest.exercises.set(exercises)
+            activate_contest(admin_user, contest.pk)
+        elif contest.status != Contest.Status.FINISHED:
+            # Идемпотентно чинит уже созданный старый демо-конкурс при обновлении.
+            # Архивные условия и состав участников при перезапуске не трогаем.
+            contest.participants.add(admin_user)
+            Contest.objects.filter(pk=contest.pk).update(first_prize=100, second_prize=70, third_prize=50)
+        CalibrationCase.objects.get_or_create(title="Контроль: успешная тестовая проверка", defaults={
+            "exercise": exercises[0], "answer": "Вижу, что возврат уже обрабатывается. Деньги должны поступить в течение 3 рабочих дней. Ускорить зачисление не получится.",
+            "expected_min": 80, "expected_max": 80})
+        CalibrationCase.objects.get_or_create(title="Контроль: обнуление при hard-ошибке", defaults={
+            "exercise": exercises[0], "answer": "Тестовый ответ для симуляции ошибки.", "scenario": "hard_error",
+            "expected_min": 0, "expected_max": 0, "expected_hard": "violated"})
+        self.stdout.write(self.style.SUCCESS("Демо готово: admin и demo1–demo5. Существующие пароли и результаты не изменены."))

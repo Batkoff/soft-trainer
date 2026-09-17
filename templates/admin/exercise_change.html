@@ -1,0 +1,10 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+{% if original and original.status != 'draft' %}
+<section class="admin-edit-note">
+  <div><strong>Хотите изменить текст задания?</strong><p>Опубликованная версия сохранена для истории ответов. Кнопка создаст копию, в которой можно изменить все поля. В запущенном конкурсе останется исходная версия.</p></div>
+  {% if has_add_permission and has_change_permission %}<form method="post" action="{% url 'admin:trainer_exercise_new_version' original.pk %}">{% csrf_token %}<button type="submit" class="button default">Редактировать новую версию →</button></form>{% endif %}
+</section>
+{% endif %}
+{{ block.super }}
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}{{ attempt.snapshot.title }} — Практика{% endblock %}
+{% block content %}
+<div class="breadcrumb"><a href="{% if not editable %}{% url 'admin:trainer_attempt_changelist' %}{% elif attempt.mode == 'sandbox' %}{% url 'sandbox' %}{% else %}{% url 'home' %}{% endif %}">← {% if not editable %}Работы сотрудников{% elif attempt.mode == 'sandbox' %}Песочница{% else %}Тренировка{% endif %}</a><span>{{ attempt.snapshot.category }}</span></div>
+{% if not editable %}{% include 'trainer/attempt_owner.html' %}{% endif %}
+<div class="page-heading compact">
+  <div><p class="eyebrow">{% if attempt.mode == 'sandbox' %}ПЕСОЧНИЦА · БЕЗ РЕЙТИНГА{% else %}ЗАДАНИЕ {{ attempt.assignment.slot }} / {{ attempt.contest.daily_limit }}{% endif %}</p><h1>{{ attempt.snapshot.title }}</h1></div>
+  {% if attempt.status == 'writing' and editable %}<div class="timer" data-timer aria-live="off"><span>ОСТАЛОСЬ</span><strong>03:00</strong></div>
+  {% elif attempt.status == 'writing' %}<span class="badge writing">Приём до {{ attempt.expires_at|date:'H:i:s' }} МСК</span>
+  {% else %}<span class="badge {{ attempt.status }}">{{ attempt.get_status_display }}</span>{% endif %}
+</div>
+{% if attempt.status == 'writing' %}
+<div class="exercise-grid" id="editor" data-attempt="{{ attempt.pk }}" data-deadline="{{ attempt.expires_at|date:'c' }}" data-server-now="{{ server_now|date:'c' }}" data-revision="{{ attempt.draft_revision }}" data-editable="{{ editable|yesno:'true,false' }}">
+  <section class="context-panel"><p class="eyebrow">КОНТЕКСТ</p><div class="customer-label"><span class="avatar client">К</span><span>Клиент</span></div><blockquote>{{ attempt.snapshot.customer_message }}</blockquote>
+    <div class="hard-block"><span class="eyebrow">ЧТО НУЖНО СООБЩИТЬ</span><p>{{ attempt.snapshot.hard_answer }}</p><span class="small muted">Сохраните факты, условия и ограничения.</span></div>
+  </section>
+  <section class="editor-panel"><label for="answer"><span class="eyebrow">{% if editable %}ВАШ ОТВЕТ КЛИЕНТУ{% else %}ЧЕРНОВИК СОТРУДНИКА{% endif %}</span></label><p class="muted small">{% if editable %}Перепишите исходный ответ своими словами.{% else %}Сотрудник ещё пишет ответ. Здесь показан последний сохранённый черновик.{% endif %}</p>
+    <form id="answer-form">{% csrf_token %}<textarea name="answer" id="answer" maxlength="6000" placeholder="Напишите так, как ответили бы клиенту…" {% if not editable %}readonly{% endif %}>{{ attempt.answer }}</textarea>
+      <div class="editor-meta"><span id="save-status" role="status">Черновик сохранён</span><span><span id="char-count">{{ attempt.answer|length }}</span> / 6000</span></div>
+      <div id="editor-error" class="form-error" role="alert" hidden></div><div class="editor-actions"><p class="small muted">После отправки ответ<br>нельзя изменить.</p>{% if editable %}<button class="button primary" id="submit-answer" type="submit">Отправить на оценку →</button>{% endif %}</div>
+    </form>
+  </section>
+</div>
+{% elif attempt.status == 'queued' or attempt.status == 'evaluating' or attempt.status == 'retry' %}
+<section class="pending-card" data-poll-attempt="{{ attempt.pk }}"><span class="spinner large"></span><p class="eyebrow">ОТВЕТ СОХРАНЁН</p><h2 data-status-label>{{ attempt.get_status_display }}</h2><p class="muted">Результат появится здесь автоматически.<br>Можно закрыть страницу — проверка продолжится.</p></section>
+{% elif attempt.status == 'review' %}
+<section class="pending-card"><span class="warning-icon">!</span><h2>Нужна ручная проверка</h2><p>{% if payload %}Модель не смогла однозначно проверить hard-часть. Разбор soft skills готов, рейтинговый балл пока не начислен.{% else %}Ответ сохранён. Проверка не завершилась, балл пока не начислен.{% endif %}</p><p class="muted">Администратор сможет разобраться и выставить оценку с объяснением.</p>{% if user.is_staff %}<p class="small muted">{{ attempt.last_error }}</p>{% endif %}</section>
+{% else %}
+<section class="result-top">
+  <div><span class="eyebrow">{% if review %}ОЦЕНКА ПОСЛЕ ПЕРЕСМОТРА{% elif grading_is_demo %}ТЕСТОВАЯ ОЦЕНКА{% elif payload.is_empty %}ПУСТОЙ ОТВЕТ{% else %}ОЦЕНКА НЕЙРОСЕТИ{% endif %}</span><div class="big-score">{{ attempt.score }}<span>/100</span></div></div>
+  <div class="result-explanation"><span class="badge {% if attempt.hard_verdict == 'violated' %}review{% else %}neutral{% endif %}">Hard: {{ attempt.get_hard_verdict_display }}</span><h2>{% if not attempt.answer %}Ответ не заполнен{% elif attempt.hard_verdict == 'violated' %}Hard-ошибка: рейтинговый балл — 0{% elif grading_is_demo %}Проверка каркаса завершена{% else %}Разбор готов{% endif %}</h2><p class="muted">{% if review %}{{ review.details.reason }}{% elif grading_is_demo %}Баллы демонстрационные. Эта оценка не отражает качество текста.{% else %}Оценка учитывает сохранение смысла и качество общения с клиентом.{% endif %}</p></div>
+</section>
+{% endif %}
+{% if payload %}
+<section class="card section">
+  <p class="eyebrow">ПРОВЕРКА HARD-ИНФОРМАЦИИ{% if review %} · ИСХОДНЫЙ РАЗБОР{% endif %}</p>
+  {% for check in payload.hard_checks %}<div class="fact-check">
+    <div><strong>{{ check.fact }}</strong><span class="badge {% if check.state == 'preserved' %}graded{% else %}review{% endif %}">{% if check.state == 'preserved' %}Сохранён{% elif check.state == 'omitted' %}Пропущен{% elif check.state == 'contradicted' %}Искажён{% else %}Неоднозначно{% endif %}</span></div>
+    {% if check.quote %}<p class="small"><q>{{ check.quote }}</q></p>{% endif %}<p class="small muted">{{ check.explanation }}</p>
+  </div>{% empty %}{% for note in payload.hard_notes %}<p>{{ note }}</p>{% endfor %}{% endfor %}
+  {% for claim in payload.unsupported_claims %}<div class="fact-check"><strong>Неподтверждённое утверждение</strong><p class="small"><q>{{ claim.quote }}</q></p><p class="small muted">{{ claim.explanation }}</p></div>{% endfor %}
+  {% if payload.uncertainty_note %}<p class="form-error">{{ payload.uncertainty_note }}</p>{% endif %}
+</section>
+<div class="result-grid section">
+  <section class="card"><p class="eyebrow">SOFT SKILLS{% if skills_reviewed %} · ПОСЛЕ ПЕРЕСМОТРА{% elif grading_is_demo %} · ТЕСТОВЫЕ ЗНАЧЕНИЯ{% endif %}</p>
+    {% for skill in skills %}<div class="skill"><div><span>{{ skill.name }}</span><strong>{{ skill.value }} / {{ skill.scale }}</strong></div><div class="track"><span style="width:{{ skill.percent }}%"></span></div>{% if skill.note %}<p class="small muted">{{ skill.note }}</p>{% endif %}</div>{% endfor %}
+  </section>
+  <section class="card">{% if skills_reviewed %}<p class="eyebrow">ИСХОДНЫЕ КОММЕНТАРИИ ОЦЕНЩИКА</p><p class="small muted">Причина и решение пересмотра показаны над разбором.</p>{% endif %}<h3>Что получилось хорошо</h3>{% for text in payload.strengths %}<p>{{ text }}</p>{% empty %}<p class="muted">В этом ответе пока не выделены сильные стороны.</p>{% endfor %}<h3 class="spaced">Что можно улучшить</h3>{% for text in payload.improvements %}<p class="muted">{{ text }}</p>{% empty %}<p class="muted">Дополнительных замечаний нет.</p>{% endfor %}</section>
+</div>
+{% if payload.improved_answer %}<section class="card section"><p class="eyebrow">ВОЗМОЖНЫЙ ВАРИАНТ ОТВЕТА</p><p class="preserve">{{ payload.improved_answer }}</p></section>{% endif %}
+  {% if user.is_staff %}<p class="small muted section">Оценщик: {{ payload.provider|default:'demo' }} · {% if payload.actual_model %}{{ payload.actual_model }}{% elif payload.model %}{{ payload.model }}{% else %}—{% endif %}{% if payload.prompt_version %} · {{ payload.prompt_version }}{% endif %} · Токены: {% if payload.usage %}{{ payload.usage.input_tokens|default_if_none:'—' }} / {{ payload.usage.output_tokens|default_if_none:'—' }}{% else %}— / —{% endif %}</p>{% endif %}
+{% endif %}
+{% if attempt.status != 'writing' %}
+<div class="result-grid section"><section class="card"><p class="eyebrow">ИСХОДНЫЙ ОТВЕТ</p><p class="preserve">{{ attempt.snapshot.hard_answer }}</p></section><section class="card"><p class="eyebrow">{% if editable %}ВАШ ОТВЕТ{% else %}ОТВЕТ СОТРУДНИКА{% endif %}{% if attempt.timed_out %} · СОХРАНЁН ПО ТАЙМЕРУ{% endif %}</p><p class="preserve">{{ attempt.answer|default:'Ответ не заполнен.' }}</p></section></div>
+<div class="result-actions"><a class="button primary" href="{% if editable %}{% url 'home' %}{% else %}{% url 'admin:trainer_attempt_changelist' %}{% endif %}">{% if editable %}К тренировке →{% else %}К работам сотрудников →{% endif %}</a>
+  {% if can_review %}{% if attempt.status == 'review' or attempt.status == 'graded' %}<a class="button" href="{% url 'review' attempt.pk %}">Пересмотреть оценку</a>{% endif %}{% if attempt.status == 'review' and not payload %}<form action="{% url 'retry' attempt.pk %}" method="post">{% csrf_token %}<button class="button" type="submit">Повторить проверку</button></form>{% endif %}{% endif %}
+</div>
+{% endif %}
+{% endblock %}

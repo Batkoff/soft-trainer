@@ -1,0 +1,13 @@
+{# Автор показан отдельно от аккаунта администратора в боковом меню. #}
+<section class="attempt-owner" aria-label="Автор работы">
+  <span class="avatar">{{ attempt.user.first_name|default:attempt.user.username|slice:':1'|upper }}</span>
+  <div class="attempt-owner-details">
+    <p class="eyebrow">ПРОСМОТР РАБОТЫ СОТРУДНИКА</p>
+    <strong>{{ attempt.user.get_full_name|default:attempt.user.username }}</strong>
+    <span class="muted small">@{{ attempt.user.username }}</span>
+    <p class="small muted">{% if attempt.contest %}{{ attempt.contest.title }}{% else %}Песочница · без рейтинга{% endif %}
+      {% if attempt.submitted_at %} · Отправлено {{ attempt.submitted_at|date:'d.m.Y в H:i' }}{% endif %}
+    </p>
+  </div>
+  <span class="badge neutral">{% if attempt.status == 'writing' %}Черновик · только просмотр{% else %}Ответ сотрудника{% endif %}</span>
+</section>

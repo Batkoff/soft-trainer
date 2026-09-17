@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">{% if archive_mode %}АРХИВ · ФИНАЛЬНЫЙ ЗАЧЁТ{% else %}ОБЩИЙ ЗАЧЁТ{% endif %}</p>
+  <h1>{% if archive_mode %}Итоги конкурса{% else %}Рейтинг{% endif %}</h1><p class="muted">{{ contest.title|default:'Нет текущих конкурсов' }}</p></div>
+</div>
+{% include 'trainer/contest_select.html' %}
+{% if contest %}
+  {% if archive_mode %}<div class="contest-result-banner"><span class="result-mark">✓</span><div><strong>Конкурс завершён. Результаты зафиксированы.</strong><p>{{ contest.finalized_at|date:'d.m.Y H:i:s' }} МСК · эта таблица больше не меняется.{% if contest.closed_at %} Приём завершён досрочно.{% endif %}</p></div></div>
+  {% elif not contest.accepts_answers %}<div class="message">{{ contest.availability_message }}</div>{% endif %}
+  <div class="leaderboard-layout"><section class="card table-card"><div class="table-scroll"><table>
+    <thead><tr><th>Место</th><th>Сотрудник</th><th>Баллы</th><th>Средняя</th><th>Заданий</th></tr></thead>
+    <tbody>{% for row in rows %}<tr {% if row.user_id == user.pk %}class="my-row"{% endif %}>
+      <td><span class="rank {% if row.place <= 3 %}top{% endif %}">{{ row.place }}</span></td>
+      <td><strong>{{ row.name }}</strong>{% if row.user_id == user.pk %}<span class="you-tag">вы</span>{% endif %}</td>
+      <td><strong>{{ row.points }}</strong></td><td>{{ row.average }}</td><td>{{ row.completed }}</td>
+    </tr>{% empty %}<tr><td colspan="5">Участники ещё не добавлены.</td></tr>{% endfor %}</tbody>
+  </table></div><p class="small muted table-note">При равенстве баллов — общее место.{% if not archive_mode %} Проверяемые ответы появятся после оценки.{% endif %}</p></section>
+  <aside class="prize-card"><p class="eyebrow">ПРИЗОВОЙ ФОНД</p><h2>{% if archive_mode %}Конкурс<br>завершён{% else %}Есть к чему<br>стремиться{% endif %}</h2>
+    <div class="prize"><span>01</span><div><strong>{{ contest.first_prize }}</strong><small>T-Money</small></div></div>
+    <div class="prize"><span>02</span><div><strong>{{ contest.second_prize }}</strong><small>T-Money</small></div></div>
+    <div class="prize"><span>03</span><div><strong>{{ contest.third_prize }}</strong><small>T-Money</small></div></div>
+    <p class="small">{% if archive_mode %}Завершён{% else %}До{% endif %} {{ contest.effective_end|date:'d E, H:i' }} МСК</p>
+    <p class="small muted">Начисление T-Money пока не подключено.</p>
+  </aside></div>
+  {% if user.is_staff and archive_mode %}<p><a href="{% url 'analytics' %}?contest={{ contest.pk }}">Аналитика завершённого конкурса →</a></p>{% endif %}
+{% else %}<div class="empty"><h2>{% if archive_mode %}Пока нет завершённых конкурсов{% else %}Рейтинг появится после запуска конкурса{% endif %}</h2>{% if user.is_superuser %}<a class="button primary" href="{% url 'admin:trainer_contest_add' %}">Создать конкурс</a>{% endif %}</div>{% endif %}
+{% endblock %}

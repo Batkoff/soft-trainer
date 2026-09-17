@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">ВЕРСИЯ {{ app_version }}</p><h1>Что нового</h1><p class="muted">История изменений тренажёра.</p></div></div>
+{% for release in releases %}<section class="card section"><p class="eyebrow">v{{ release.version }} · {{ release.date }}</p><h2>{{ release.title }}</h2><ul class="guide-list">{% for change in release.changes %}<li>{{ change }}</li>{% endfor %}</ul></section>{% endfor %}
+{% endblock %}
