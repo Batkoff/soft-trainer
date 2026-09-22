@@ -48,7 +48,9 @@ def get_evaluator(rubric: dict | None = None) -> Evaluator:
     from .evaluation_profiles import current_profile, profile_for_rubric
     profile = current_profile() if rubric is None else profile_for_rubric(rubric)
     if profile.get("provider") == "demo":
-        return DemoEvaluator()
+        if getattr(settings, "ALLOW_TEST_EVALUATOR", False):
+            return DemoEvaluator()
+        raise PermanentEvaluationError("Тестовый оценщик отключён. Создайте конкурс с реальной моделью.")
     if profile.get("provider") in ("openai", "openrouter"):
         from .evaluation_http import LiveEvaluator
         return LiveEvaluator(profile)

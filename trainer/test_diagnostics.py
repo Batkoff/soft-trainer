@@ -7,7 +7,7 @@ from .services import start_sandbox
 from .tasks import evaluate_attempt
 
 
-@override_settings(EVALUATOR_BACKEND="demo", DEMO_EVALUATION_DELAY=0,
+@override_settings(ALLOW_TEST_EVALUATOR=True, EVALUATOR_BACKEND="demo", DEMO_EVALUATION_DELAY=0,
                    PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class DiagnosticTests(TestCase):
     @classmethod

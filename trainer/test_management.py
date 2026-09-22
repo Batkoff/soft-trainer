@@ -11,7 +11,7 @@ from .releases import VERSION
 from .services import review_attempt, start_sandbox
 from .tasks import evaluate_attempt
 
-@override_settings(EVALUATOR_BACKEND="demo", EVALUATOR_MODEL="demo-v1", DEMO_EVALUATION_DELAY=0,
+@override_settings(ALLOW_TEST_EVALUATOR=True, EVALUATOR_BACKEND="demo", EVALUATOR_MODEL="demo-v1", DEMO_EVALUATION_DELAY=0,
                    PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class ManagementTests(TestCase):
     @classmethod
@@ -147,7 +147,7 @@ class ManagementTests(TestCase):
         contest = Contest(starts_at=timezone.now(), ends_at=timezone.now()+timedelta(days=1))
         self.assertEqual((contest.first_prize, contest.second_prize, contest.third_prize), (100, 70, 50))
 
-    @override_settings(EVALUATOR_BACKEND="openai", OPENAI_API_KEY="")
+    @override_settings(ALLOW_TEST_EVALUATOR=True, EVALUATOR_BACKEND="openai", OPENAI_API_KEY="")
     def test_calibrator_reports_missing_key_without_creating_partial_run(self):
         case = CalibrationCase.objects.create(title="Реальный пример", exercise=self.exercise,
             answer="До 3 рабочих дней.", scenario="real", expected_hard="passed")
@@ -155,6 +155,6 @@ class ManagementTests(TestCase):
         response = self.client.post("/admin/trainer/calibrationcase/", {
             "action": "run_cases", "_selected_action": [case.pk]}, follow=True)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Для реальной проверки настройте")
+        self.assertContains(response, "Для проверки откройте")
         self.assertFalse(CalibrationRun.objects.exists())
         self.assertFalse(Attempt.objects.exists())

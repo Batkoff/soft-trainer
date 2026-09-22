@@ -12,7 +12,7 @@ from .services import (auto_finalize_expired_contests, close_contest_early, fina
 from .tasks import evaluate_attempt
 
 
-@override_settings(EVALUATOR_BACKEND="demo", DEMO_EVALUATION_DELAY=0,
+@override_settings(ALLOW_TEST_EVALUATOR=True, EVALUATOR_BACKEND="demo", DEMO_EVALUATION_DELAY=0,
                    PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class ContestLifecycleTests(TestCase):
     @classmethod
@@ -68,7 +68,7 @@ class ContestLifecycleTests(TestCase):
         self.assertIsNotNone(result.finalized_at)
         self.assertEqual(len(result.final_standings), 2)
 
-    @override_settings(DEMO_PASSWORD="test-demo-password")
+    @override_settings(ALLOW_TEST_EVALUATOR=True, DEMO_PASSWORD="test-demo-password")
     def test_seed_on_update_does_not_change_archived_demo(self):
         self.contest.title = "Демо · Поддержка бизнеса"
         self.contest.first_prize = 125

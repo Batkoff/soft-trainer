@@ -31,7 +31,7 @@ def api_response(raw=None):
     return {"model": "gpt-4.1-mini-2025-04-14", "usage": {"prompt_tokens": 1400, "completion_tokens": 600},
             "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(raw or model_result())}}]}
 
-@override_settings(**AI_SETTINGS)
+@override_settings(ALLOW_TEST_EVALUATOR=True, **AI_SETTINGS)
 class APIContractTests(SimpleTestCase):
     def setUp(self):
         self.data = EvaluationInput(TASK, ANSWER, default_rubric(), attempt_id="test-attempt")
@@ -131,7 +131,7 @@ class APIContractTests(SimpleTestCase):
         self.assertEqual(calculate_score(result, data.answer, data.rubric), 0)
         post.assert_not_called()
 
-    @override_settings(OPENAI_API_KEY="")
+    @override_settings(ALLOW_TEST_EVALUATOR=True, OPENAI_API_KEY="")
     @patch("trainer.evaluation_http.post_json")
     def test_missing_key_is_not_demo_fallback(self, post):
         with self.assertRaises(PermanentEvaluationError):
@@ -144,7 +144,7 @@ class APIContractTests(SimpleTestCase):
         with override_settings(EVALUATOR_MODEL="another-model"):
             self.assertEqual(get_evaluator(frozen).profile["model"], AI_SETTINGS["EVALUATOR_MODEL"])
 
-    @override_settings(EVALUATOR_BACKEND="openrouter", EVALUATOR_MODEL="openai/gpt-4.1-mini")
+    @override_settings(ALLOW_TEST_EVALUATOR=True, EVALUATOR_BACKEND="openrouter", EVALUATOR_MODEL="openai/gpt-4.1-mini")
     @patch("trainer.evaluation_http.post_json", return_value=api_response())
     def test_openrouter_requires_schema_without_provider_fallback(self, post):
         LiveEvaluator(current_profile()).evaluate(self.data)
@@ -154,7 +154,7 @@ class APIContractTests(SimpleTestCase):
         self.assertIn("max_tokens", body)
         self.assertNotIn("reasoning", body)  # GPT-4.1 не получает лишний параметр.
 
-    @override_settings(EVALUATOR_BACKEND="openrouter", EVALUATOR_MODEL=FREE_OPENROUTER_MODEL)
+    @override_settings(ALLOW_TEST_EVALUATOR=True, EVALUATOR_BACKEND="openrouter", EVALUATOR_MODEL=FREE_OPENROUTER_MODEL)
     @patch("trainer.evaluation_http.post_json", return_value=api_response())
     def test_free_model_pins_reasoning_setting_and_does_not_fall_back_to_paid(self, post):
         rubric = default_rubric()
@@ -185,7 +185,7 @@ class APIContractTests(SimpleTestCase):
         with self.assertRaises(TemporaryEvaluationError):
             post_json("openai", "SECRET-KEY", {})
 
-@override_settings(**AI_SETTINGS)
+@override_settings(ALLOW_TEST_EVALUATOR=True, **AI_SETTINGS)
 class AIQueueTests(TestCase):
     @classmethod
     def setUpTestData(cls):

@@ -212,6 +212,10 @@ class Attempt(models.Model):
         return f"{self.user} · {self.snapshot.get('title', '')}"
 
 class Evaluation(models.Model):
+    class Meta:
+        verbose_name = "результат проверки"
+        verbose_name_plural = "Результаты проверки"
+
     """Первоначальный ответ обработчика не переписывается ручным пересмотром."""
     attempt = models.OneToOneField(Attempt, on_delete=models.PROTECT, related_name="evaluation")
     payload = models.JSONField()
@@ -289,7 +293,7 @@ class CalibrationCase(models.Model):
 
     class Meta:
         verbose_name = "пример калибровки"
-        verbose_name_plural = "Калибратор — примеры"
+        verbose_name_plural = "Эталонные ответы"
 
     def __str__(self):
         return self.title
@@ -299,6 +303,10 @@ class CalibrationCase(models.Model):
             raise ValidationError("Минимум не может быть больше максимума.")
 
 class CalibrationRun(models.Model):
+    class Meta:
+        verbose_name = "проверка эталона"
+        verbose_name_plural = "Проверки эталонов"
+
     case = models.ForeignKey(CalibrationCase, on_delete=models.PROTECT)
     attempt = models.OneToOneField(Attempt, on_delete=models.PROTECT)
     expected_min = models.PositiveSmallIntegerField()
@@ -311,3 +319,13 @@ class LoginThrottle(models.Model):
     key = models.CharField(max_length=64, unique=True)
     count = models.PositiveIntegerField(default=0)
     window_start = models.DateTimeField(default=timezone.now)
+
+
+class AIConfiguration(models.Model):
+    """Единственная настройка подключения; ключи зашифрованы SECRET_KEY проекта."""
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    provider = models.CharField(max_length=20, default="openrouter")
+    model = models.CharField(max_length=200)
+    openai_secret = models.TextField(blank=True)
+    openrouter_secret = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)

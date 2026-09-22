@@ -1,0 +1,45 @@
+name: Build and test
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check setup scripts
+        run: python -m unittest discover -s scripts -p 'test_*.py'
+      - name: Build and start a clean installation
+        run: python scripts/start.py
+      - name: Check HTTP
+        run: |
+          curl --fail http://localhost:8080/health/
+          curl --fail http://localhost:8080/login/ > /tmp/ton-login.html
+          grep -q '@batkoff' /tmp/ton-login.html
+      - name: Verify image contains no local secrets
+        run: docker compose exec -T web python -c "from pathlib import Path; assert not Path('/app/.env').exists(); assert not Path('/app/.demo-credentials.txt').exists()"
+      - name: Recover an existing database after a password mismatch
+        run: |
+          docker compose exec -T db psql -X -U trainer -d trainer -v ON_ERROR_STOP=1 -c "CREATE TABLE startup_sentinel (value integer); INSERT INTO startup_sentinel VALUES (42); ALTER ROLE trainer PASSWORD 'ci-only-stale-password';"
+          status=0
+          docker compose run --rm --no-deps -T init python scripts/check_database.py || status=$?
+          test "$status" -eq 42
+          python scripts/start.py
+          docker compose run --rm --no-deps -T init python scripts/check_database.py
+          docker compose exec -T db sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql -X -w -h 127.0.0.1 -U trainer -d trainer -Atqc "SELECT value FROM startup_sentinel"' > /tmp/sentinel.txt
+          grep -qx 42 /tmp/sentinel.txt
+      - name: Check migrations and application tests
+        run: |
+          docker compose exec -T web python manage.py check
+          docker compose exec -T web python manage.py makemigrations --check --dry-run
+          docker compose exec -T web python manage.py test trainer
+      - name: Container logs
+        if: failure()
+        run: docker compose logs --no-color --tail=100 init web worker proxy
+      - name: Stop containers
+        if: always()
+        run: docker compose down

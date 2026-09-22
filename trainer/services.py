@@ -28,6 +28,7 @@ def start_next(user, contest_id: int) -> Attempt:
     contest = Contest.objects.select_for_update().get(pk=contest_id)
     if not contest.participants.filter(pk=user.pk).exists():
         raise PermissionDenied
+    ensure_real_profile(contest.rubric)
     if not contest.accepts_answers:
         raise ValidationError(contest.availability_message)
     now = timezone.now()
@@ -104,9 +105,13 @@ def start_sandbox(user, exercise: Exercise, scenario: str, answer: str | None = 
         raise PermissionDenied
     if scenario not in Attempt.Scenario.values:
         raise ValidationError("Неизвестный тестовый сценарий.")
+    if scenario != Attempt.Scenario.REAL:
+        from django.conf import settings
+        if not getattr(settings, "ALLOW_TEST_EVALUATOR", False):
+            raise ValidationError("Тестовые оценки отключены. Выберите проверку нейросетью.")
     rubric = default_rubric() if scenario == Attempt.Scenario.REAL else demo_rubric()
     if scenario == Attempt.Scenario.REAL and not profile_has_key(profile_for_rubric(rubric)):
-        raise ValidationError("Для реальной проверки настройте EVALUATOR_BACKEND и API-ключ в .env.")
+        raise ValidationError("Для проверки откройте Управление → Нейросеть и сохраните API-ключ.")
     attempt = Attempt.objects.create(user=user, exercise=exercise, mode=Attempt.Mode.SANDBOX,
         snapshot=exercise.snapshot(), rubric=rubric, demo_scenario=scenario,
         expires_at=timezone.now()+timedelta(seconds=180))
@@ -195,6 +200,10 @@ def activate_contest(user, contest_id):
     contest = Contest.objects.select_for_update().get(pk=contest_id)
     if contest.status != Contest.Status.DRAFT:
         raise ValidationError("Запустить можно только черновик конкурса.")
+    from django.conf import settings
+    if not getattr(settings, "ALLOW_TEST_EVALUATOR", False):
+        from .evaluation_profiles import current_profile
+        contest.rubric = {**contest.rubric, "version": "soft-v1", "evaluator": current_profile()}
     contest.full_clean()
     if contest.ends_at <= timezone.now():
         raise ValidationError("Укажите будущую дату окончания.")
@@ -204,11 +213,12 @@ def activate_contest(user, contest_id):
         raise ValidationError("Сначала опубликуйте все задания конкурса.")
     if not contest.participants.exists():
         raise ValidationError("Добавьте участников конкурса.")
+    ensure_real_profile(contest.rubric)
     profile = profile_for_rubric(contest.rubric)
     if profile.get("provider") != "demo" and not profile_has_key(profile):
         raise ValidationError("Для запуска конкурса настройте API-ключ провайдера, указанного в профиле оценки.")
     contest.status = Contest.Status.ACTIVE
-    contest.save(update_fields=["status"])
+    contest.save(update_fields=["status", "rubric"])
     audit(user, "contest_activated", contest)
 
 @transaction.atomic
@@ -288,3 +298,14 @@ def auto_finalize_expired_contests(limit=100):
             freeze_standings(contest, None, "contest_auto_finalized")
             finalized.append(contest.pk)
     return finalized
+
+
+def ensure_real_profile(rubric):
+    from django.conf import settings
+    if getattr(settings, "ALLOW_TEST_EVALUATOR", False):
+        return
+    profile = profile_for_rubric(rubric)
+    if profile.get("provider") not in ("openai", "openrouter"):
+        raise ValidationError("Этот конкурс использовал тестовые оценки. Создайте новый конкурс с нейросетью; прежние результаты сохранены в истории.")
+    if not profile_has_key(profile):
+        raise ValidationError("Проверка пока не настроена. Администратору нужно добавить API-ключ: Управление → Нейросеть.")

@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.getenv("DEBUG", "0") == "1"
 SECRET_KEY = os.environ.get("SECRET_KEY", "")
 if not SECRET_KEY:
-    raise ImproperlyConfigured("Задайте SECRET_KEY. Для локального демо используйте scripts/run_local.py.")
+    raise ImproperlyConfigured("Задайте SECRET_KEY. Для локального демо используйте scripts/start.py.")
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]").split(",")
 CSRF_TRUSTED_ORIGINS = [x for x in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if x]
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
@@ -19,12 +19,13 @@ options = {key: values[-1] for key, values in parse_qs(db.query).items()}
 host = options.pop("host", db.hostname or "localhost")
 DATABASES = {"default": {
     "ENGINE": "django.db.backends.postgresql", "NAME": unquote(db.path.lstrip("/")) or "postgres",
-    "USER": unquote(db.username or "postgres"), "PASSWORD": unquote(db.password or ""),
+    # Compose передаёт пароль отдельно: символы %, #, @ и / не являются частью URL.
+    "USER": unquote(db.username or "postgres"), "PASSWORD": os.environ.get("DATABASE_PASSWORD", unquote(db.password or "")),
     "HOST": host, "PORT": db.port or options.pop("port", "5432"),
     "CONN_MAX_AGE": 60, "CONN_HEALTH_CHECKS": True, "OPTIONS": options,
 }}
 INSTALLED_APPS = [
-    "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
+    "config.admin.TonAdminConfig", "django.contrib.auth", "django.contrib.contenttypes",
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
     "procrastinate.contrib.django", "trainer",
 ]
@@ -62,6 +63,9 @@ SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_AGE = 60 * 60 * 12
 SESSION_COOKIE_SECURE = os.getenv("SECURE_COOKIES", "0") == "1"
 CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
+# Gunicorn не публикует порт наружу; единственная точка входа — Caddy,
+# который выставляет X-Forwarded-Proto по фактическому соединению клиента.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"

@@ -17,7 +17,7 @@ from .services import (activate_contest, auto_finalize_expired_contests, finaliz
     review_attempt, save_draft, start_next, start_sandbox)
 from .tasks import evaluate_attempt, recover_jobs
 
-@override_settings(EVALUATOR_BACKEND="demo", DEMO_EVALUATION_DELAY=0, PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
+@override_settings(ALLOW_TEST_EVALUATOR=True, EVALUATOR_BACKEND="demo", DEMO_EVALUATION_DELAY=0, PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class TrainingRulesTests(TestCase):
     @classmethod
     def setUpTestData(cls):

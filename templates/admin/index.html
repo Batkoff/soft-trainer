@@ -5,7 +5,7 @@
 {% block content_title %}{% endblock %}
 {% block content %}
 <section class="admin-welcome">
-  <div><p class="admin-eyebrow">РАБОЧЕЕ ПРОСТРАНСТВО</p><h1>Всё для хорошей практики</h1><p>Готовьте задания, запускайте конкурсы и разбирайте ответы команды.</p></div>
+  <div><p class="admin-eyebrow">УПРАВЛЕНИЕ · ТОН</p><h1>Задавайте тон обучению</h1><p>Готовьте задания, запускайте конкурсы и разбирайте ответы команды.</p></div>
   <a class="admin-primary" href="{% url 'analytics' %}">Посмотреть результаты ↗</a>
 </section>
 <div class="admin-workflow" aria-label="Порядок запуска конкурса"><span><b>1</b> Подготовьте задания</span><span><b>2</b> Настройте конкурс</span><span><b>3</b> Следите за результатами</span></div>
@@ -13,7 +13,7 @@
 <section class="admin-section" aria-labelledby="section-{{ app.app_label }}">
   <div class="admin-section-heading"><h2 id="section-{{ app.app_label }}">{% if app.app_label == 'auth' %}Команда и доступ{% elif app.app_label == 'trainer' %}Тренажёр{% elif app.app_label == 'procrastinate' %}Очередь проверки{% else %}{{ app.name }}{% endif %}</h2><span>Разделов: {{ app.models|length }}</span></div>
   <div class="admin-card-grid">
-  {% for model in app.models %}
+  {% for model in app.models %}{% if not model.advanced %}
     <article class="admin-section-card">
       <div class="admin-card-top"><span class="admin-card-icon" aria-hidden="true">{% if model.object_name == 'Exercise' %}▤{% elif model.object_name == 'Contest' %}↗{% elif model.object_name == 'Attempt' %}✓{% elif model.object_name == 'EvaluationTrace' %}⌁{% elif model.object_name == 'User' %}◎{% else %}◇{% endif %}</span>{% if model.add_url %}<a class="admin-card-add" href="{{ model.add_url }}" aria-label="Добавить: {{ model.name }}">＋ Добавить</a>{% endif %}</div>
       <h3>{% if model.admin_url %}<a href="{{ model.admin_url }}">{{ model.name }}</a>{% else %}{{ model.name }}{% endif %}</h3>
@@ -30,8 +30,9 @@
         {% else %}Просмотр записей и доступные действия.{% endif %}</p>
       {% if model.admin_url %}<a class="admin-card-open" href="{{ model.admin_url }}">Открыть раздел <span aria-hidden="true">→</span></a>{% endif %}
     </article>
-  {% endfor %}
+  {% endif %}{% endfor %}
   </div>
 </section>
 {% empty %}<p>У вашей учётной записи пока нет доступа к разделам управления.</p>{% endfor %}
+<details class="admin-section admin-advanced"><summary>Дополнительно: эталоны и технические результаты</summary><p>Эталонные ответы нужны для сравнения оценки модели с решением человека. Результаты проверки хранят первоначальный разбор до ручного пересмотра.</p><div class="admin-card-grid">{% for app in app_list %}{% for model in app.models %}{% if model.advanced and model.admin_url %}<a class="admin-section-card" href="{{ model.admin_url }}">{{ model.name }} →</a>{% endif %}{% endfor %}{% endfor %}</div></details>
 {% endblock %}

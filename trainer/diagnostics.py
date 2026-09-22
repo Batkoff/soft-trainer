@@ -4,6 +4,8 @@ from django.utils import timezone
 from .releases import VERSION
 
 EVENT_TITLES = {
+    "ai_settings_updated": "Изменены настройки нейросети",
+    "admin_access_recovered": "Восстановлен доступ администратора",
     "attempt_started": "Задание открыто", "attempt_submitted": "Ответ отправлен на проверку",
     "evaluation_completed": "Оценка получена", "evaluation_error": "Ошибка проверки",
     "evaluation_requeued": "Проверка запущена повторно администратором",
@@ -93,7 +95,7 @@ def response_text(payload):
 
 
 def export_header():
-    return f"Практика · v{VERSION} · диагностический отчёт\nВыгружено: {timezone.localtime():%d.%m.%Y %H:%M:%S} МСК\n\n"
+    return f"Тон · @batkoff · v{VERSION} · диагностический отчёт\nВыгружено: {timezone.localtime():%d.%m.%Y %H:%M:%S} МСК\n\n"
 
 
 def event_text(event):
