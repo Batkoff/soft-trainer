@@ -1,0 +1,28 @@
+/* Тон · виноград + лайм. Общие цвета тренажёра и штатной админки. */
+:root {
+  color-scheme: dark;
+  --ton-bg: #151019;
+  --ton-surface: #251c30;
+  --ton-raised: #30243e;
+  --ton-hover: #392c49;
+  --ton-border: #493953;
+  --ton-text: #f4edf9;
+  --ton-muted: #beb0cb;
+  --ton-accent: #b58af5;
+  --ton-accent-hover: #c6a3fa;
+  --ton-accent-soft: #372748;
+  --ton-on-accent: #21132f;
+  --ton-lime: #d8ef9a;
+  --ton-lime-soft: #303822;
+  --ton-success: #9bd6b5;
+  --ton-success-bg: #20392f;
+  --ton-warning: #e7c283;
+  --ton-warning-bg: #3b3022;
+  --ton-danger: #f5a2ae;
+  --ton-danger-bg: #412530;
+  --ton-info: #b1c7f5;
+  --ton-info-bg: #253148;
+}
+.author-credit {white-space: nowrap;}
+.author-credit a {color: var(--ton-lime); font-weight: 600;}
+::selection {background: var(--ton-accent); color: var(--ton-on-accent);}

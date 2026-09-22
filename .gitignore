@@ -1,0 +1,36 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+.demo-credentials.txt*
+*.pem
+*.key
+
+# Runtime data and generated files
+.data/
+backups/
+staticfiles/
+media/
+*.log
+*.dump
+*.sqlite3
+*.zip
+
+# Python, tests and editors
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local development tools
+.codex/
+.claude/
+.cursor/
+node_modules/

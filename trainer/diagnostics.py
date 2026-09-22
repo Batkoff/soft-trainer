@@ -93,7 +93,7 @@ def response_text(payload):
 
 
 def export_header():
-    return f"Практика · v{VERSION} · диагностический отчёт\nВыгружено: {timezone.localtime():%d.%m.%Y %H:%M:%S} МСК\n\n"
+    return f"Тон · @batkoff · v{VERSION} · диагностический отчёт\nВыгружено: {timezone.localtime():%d.%m.%Y %H:%M:%S} МСК\n\n"
 
 
 def event_text(event):

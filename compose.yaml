@@ -50,10 +50,17 @@ services:
       init: {condition: service_completed_successfully}
   proxy:
     image: caddy:2-alpine
-    # На VPS сайт должен быть доступен снаружи. Локально можно задать
-    # HTTP_BIND=127.0.0.1, если перед Caddy используется другой прокси.
-    ports: ["${HTTP_BIND:-0.0.0.0}:${HTTP_PORT:-8080}:80"]
-    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro", "static:/srv/static:ro"]
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    # Внешний доступ включается явно: scripts/start.py --host IP_СЕРВЕРА.
+    ports:
+      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8080}:80"
+      - "${HTTP_BIND:-127.0.0.1}:${HTTPS_PORT:-8443}:443"
+    volumes:
+      - "./Caddyfile:/etc/caddy/Caddyfile:ro"
+      - "static:/srv/static:ro"
+      - "caddy_data:/data"
+      - "caddy_config:/config"
     depends_on:
       web: {condition: service_healthy}
     restart: unless-stopped
@@ -63,3 +70,5 @@ services:
 volumes:
   database:
   static:
+  caddy_data:
+  caddy_config:

@@ -1,15 +1,16 @@
 {% extends "admin/base.html" %}
 {% load static %}
-{% block title %}{{ title }} — Управление · Практика{% endblock %}
-{# Единая светлая тема. Формы и скрипты админки остаются штатными. #}
+{% block title %}{{ title }} — Управление · Тон{% endblock %}
+{# Единая тёмная тема. Формы и скрипты админки остаются штатными. #}
 {% block dark-mode-vars %}{% endblock %}
 {% block responsive %}
   {{ block.super }}
+  <link rel="stylesheet" href="{% static 'theme.css' %}?v={{ app_version }}">
   <link rel="stylesheet" href="{% static 'admin-theme.css' %}?v={{ app_version }}">
 {% endblock %}
-{% block extrahead %}{{ block.super }}<link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">{% endblock %}
+{% block extrahead %}{{ block.super }}<meta name="author" content="Даниил Батков · @batkoff"><link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">{% endblock %}
 {% block branding %}
-  <a href="{% url 'admin:index' %}" class="admin-brand"><span class="admin-brand-mark" aria-hidden="true">п</span><span>практика<small>управление тренажёром</small></span></a>
+  <a href="{% url 'admin:index' %}" class="admin-brand"><span class="admin-brand-mark" aria-hidden="true">т</span><span>Тон<small>управление тренажёром</small></span></a>
 {% endblock %}
 {% block usertools %}
   {% if has_permission %}<div id="user-tools" class="admin-account">
@@ -25,4 +26,4 @@
     <a href="{% url 'home' %}" class="admin-back-link">Открыть тренажёр ↗</a>
   </nav>{% endif %}
 {% endblock %}
-{% block footer %}<p class="admin-footer">Практика · <a href="{% url 'updates' %}">v{{ app_version }} · Что нового</a></p>{% endblock %}
+{% block footer %}<p class="admin-footer">Тон · <a href="{% url 'updates' %}">v{{ app_version }} · Что нового</a> · {% include "includes/author.html" %}</p>{% endblock %}

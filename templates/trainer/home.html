@@ -1,5 +1,5 @@
 {% extends 'base.html' %}{% block content %}
-<div class="page-heading"><div><p class="eyebrow">{{ today|date:'j E, l' }}</p><h1>Время для практики,<br>{{ current_display_name }}</h1><p class="muted">Смысл уже есть. Сделайте ответ понятным и человечным.</p></div></div>
+<div class="page-heading"><div><p class="eyebrow">{{ today|date:'j E, l' }}</p><h1>Твой ход,<br>{{ current_display_name }}.</h1><p class="muted">Каждый ответ задаёт тон.</p></div></div>
 {% include 'trainer/contest_select.html' %}
 {% if contest %}<div class="home-grid"><section class="daily-card"><div class="card-top"><span class="eyebrow">СЕГОДНЯ</span><span class="badge neutral">{{ contest.time_limit_seconds }} сек. на ответ</span></div>
 <div class="daily-count">{{ submitted }}<span>/ {{ contest.daily_limit }}</span></div><h2>сообщений отправлено</h2>

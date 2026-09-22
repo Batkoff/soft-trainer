@@ -1,11 +1,13 @@
 {% load static %}<!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{% block title %}Практика — тренажёр поддержки{% endblock %}</title>
+<meta name="author" content="Даниил Батков · @batkoff">
+<title>{% block title %}Тон — тренажёр общения{% endblock %}</title>
 <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+<link rel="stylesheet" href="{% static 'theme.css' %}?v={{ app_version }}">
 <link rel="stylesheet" href="{% static 'app.css' %}?v={{ app_version }}"><script src="{% static 'vendor/htmx.min.js' %}" defer></script><script src="{% static 'app.js' %}?v={{ app_version }}" defer></script></head>
 <body><a class="skip" href="#main">К содержимому</a>
 {% if user.is_authenticated %}
-<aside class="sidebar"><a href="{% url 'home' %}" class="brand"><span class="brand-icon">п</span><span>практика<span class="brand-sub">поддержка бизнеса</span></span></a>
+<aside class="sidebar"><a href="{% url 'home' %}" class="brand"><span class="brand-icon">т</span><span>Тон<span class="brand-sub">Найди свой.</span></span></a>
 <nav aria-label="Основное меню"><p class="nav-label">ТРЕНАЖЁР</p>
 <a href="{% url 'home' %}" class="nav-link {% if nav == 'training' %}active{% endif %}"><span class="nav-symbol">▤</span>Тренировка</a>
 <a href="{% url 'leaderboard' %}" class="nav-link {% if nav == 'leaderboard' %}active{% endif %}"><span class="nav-symbol">↗</span>Рейтинг</a>
@@ -15,7 +17,7 @@
 <a href="{% url 'sandbox' %}" class="nav-link {% if nav == 'sandbox' %}active{% endif %}"><span class="nav-symbol">◇</span>Песочница</a>
 <a href="{% url 'admin:index' %}" class="nav-link"><span class="nav-symbol">⚙</span>Админка</a>
 <a href="{% url 'guide' %}" class="nav-link {% if nav == 'guide' %}active{% endif %}"><span class="nav-symbol">?</span>Как пользоваться</a>{% endif %}</nav>
-<div class="sidebar-bottom"><span class="demo-pill">MLP · {{ app_version }}</span><p>Короткая практика.<br>Внимание к словам.</p>
+<div class="sidebar-bottom"><span class="demo-pill">MLP · {{ app_version }}</span><p>Тон. Найди свой.</p>
 <div class="user-line"><span class="avatar">{{ current_avatar }}</span><div><strong>{{ current_display_name }}</strong><small>{{ current_role }}</small></div></div>
 <form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="logout" type="submit">Выйти из аккаунта</button></form></div></aside>
 {% endif %}
@@ -23,4 +25,4 @@
 {% if user.is_authenticated %}<header class="topbar"><span>Тренажёр коммуникации</span><span class="muted">Учебная среда</span></header>{% endif %}
 <main id="main">{% if user.is_authenticated %}<div class="demo-notice"><span class="notice-mark">i</span><span>{% if grading_is_demo %}Демонстрационный оценщик: баллы проверяют механику и не отражают качество текста.{% else %}Проверка нейросетью. Спорную оценку можно пересмотреть с администратором.{% endif %}</span></div>{% endif %}
 {% for message in messages %}<div class="message {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
-{% block content %}{% endblock %}</main><footer>Практика · <a href="{% url 'updates' %}">v{{ app_version }} · Что нового</a></footer></div></body></html>
+{% block content %}{% endblock %}</main><footer>Тон · <a href="{% url 'updates' %}">v{{ app_version }} · Что нового</a> · {% include "includes/author.html" %}</footer></div></body></html>

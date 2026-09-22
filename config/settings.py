@@ -62,6 +62,9 @@ SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_AGE = 60 * 60 * 12
 SESSION_COOKIE_SECURE = os.getenv("SECURE_COOKIES", "0") == "1"
 CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
+# Gunicorn не публикует порт наружу; единственная точка входа — Caddy,
+# который выставляет X-Forwarded-Proto по фактическому соединению клиента.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ attempt.snapshot.title }} — Практика{% endblock %}
+{% block title %}{{ attempt.snapshot.title }} — Тон{% endblock %}
 {% block content %}
 <div class="breadcrumb"><a href="{% if not editable %}{% url 'admin:trainer_attempt_changelist' %}{% elif attempt.mode == 'sandbox' %}{% url 'sandbox' %}{% else %}{% url 'home' %}{% endif %}">← {% if not editable %}Работы сотрудников{% elif attempt.mode == 'sandbox' %}Песочница{% else %}Тренировка{% endif %}</a><span>{{ attempt.snapshot.category }}</span></div>
 {% if not editable %}{% include 'trainer/attempt_owner.html' %}{% endif %}

@@ -1,0 +1,16 @@
+# Only runtime source belongs in the image. Local secrets never enter the build context.
+*
+!requirements.txt
+!manage.py
+!config/
+!config/**
+!trainer/
+!trainer/**
+!templates/
+!templates/**
+!static/
+!static/**
+!scripts/
+!scripts/initialize.py
+**/__pycache__/
+**/*.py[cod]

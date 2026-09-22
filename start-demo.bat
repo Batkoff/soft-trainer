@@ -1,10 +1,10 @@
 @echo off
 cd /d "%~dp0"
-python scripts\prepare_demo.py
-if errorlevel 1 exit /b 1
-docker compose up --build -d
-if errorlevel 1 exit /b 1
-echo.
-echo Open http://localhost:8080
-echo Credentials: .demo-credentials.txt
+where py >nul 2>nul
+if errorlevel 1 (
+  python scripts\start.py
+) else (
+  py -3 scripts\start.py
+)
+if errorlevel 1 echo Startup failed. See the error above and docs/GETTING_STARTED.md.
 pause
