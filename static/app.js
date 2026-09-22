@@ -127,3 +127,24 @@ if (pending) {
   };
   setTimeout(poll, 2000);
 }
+
+// Keep provider and preset selection compatible; server validation remains authoritative.
+const aiSettings = document.querySelector("[data-ai-settings]");
+if (aiSettings) {
+  const provider = aiSettings.querySelector("[name=provider]");
+  const model = aiSettings.querySelector("[name=model_choice]");
+  const custom = aiSettings.querySelector("[name=custom_model]");
+  function updateModelChoices() {
+    for (const option of model.options) {
+      option.disabled = option.value !== "custom" &&
+        ((provider.value === "openai") !== option.value.startsWith("gpt-"));
+    }
+    if (model.selectedOptions[0].disabled) {
+      model.value = Array.from(model.options).find(option => !option.disabled).value;
+    }
+    custom.closest("p").hidden = model.value !== "custom";
+  }
+  provider.addEventListener("change", updateModelChoices);
+  model.addEventListener("change", updateModelChoices);
+  updateModelChoices();
+}

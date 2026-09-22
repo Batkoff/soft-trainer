@@ -67,3 +67,55 @@ class ConfigurationTests(TestCase):
         self.assertNotIn(password, output.getvalue())
         self.admin.refresh_from_db()
         self.assertTrue(self.admin.check_password(password))
+
+    @patch("trainer.evaluation_http.post_json")
+    def test_saved_connection_is_used_by_real_evaluator(self, post):
+        from .evaluation import EvaluationInput
+        from .models import default_rubric
+        from .test_ai import TASK, ANSWER, api_response
+        self.save_settings(api_key="integration-test-key")
+        post.return_value = api_response()
+        rubric = default_rubric()
+        result = get_evaluator(rubric).evaluate(EvaluationInput(TASK, ANSWER, rubric))
+        self.assertFalse(result["is_demo"])
+        self.assertEqual(post.call_args.args[0:2], ("openrouter", "integration-test-key"))
+        self.assertEqual(result["hard_verdict"], "passed")
+
+    def test_startup_keeps_existing_contest_settings(self):
+        from .models import Contest
+        with patch.dict("os.environ", {"DEMO_PASSWORD": "initial-test-password"}):
+            call_command("seed_demo", stdout=io.StringIO())
+            contest = Contest.objects.get(title="Поддержка бизнеса · стартовый конкурс")
+            self.assertEqual(contest.status, "draft")
+            contest.first_prize = 123
+            contest.save()
+            call_command("seed_demo", stdout=io.StringIO())
+        contest.refresh_from_db()
+        self.assertEqual(contest.first_prize, 123)
+        self.assertEqual(Contest.objects.count(), 1)
+
+    def test_activation_freezes_current_model_and_later_changes_do_not_rewrite_it(self):
+        from .models import Contest
+        from .services import activate_contest
+        with patch.dict("os.environ", {"DEMO_PASSWORD": "initial-test-password"}):
+            call_command("seed_demo", stdout=io.StringIO())
+        contest = Contest.objects.get(title="Поддержка бизнеса · стартовый конкурс")
+        self.save_settings(api_key="activation-test-key", model_choice="custom", custom_model="provider/model-one")
+        activate_contest(self.admin, contest.pk)
+        contest.refresh_from_db()
+        self.assertEqual(contest.rubric["evaluator"]["model"], "provider/model-one")
+        self.save_settings(model_choice="custom", custom_model="provider/model-two")
+        contest.refresh_from_db()
+        self.assertEqual(contest.rubric["evaluator"]["model"], "provider/model-one")
+
+    def test_old_demo_contest_cannot_issue_new_attempts(self):
+        from .models import Contest, Attempt
+        from .services import start_next
+        from django.core.exceptions import ValidationError
+        with patch.dict("os.environ", {"DEMO_PASSWORD": "initial-test-password"}):
+            call_command("seed_demo", stdout=io.StringIO())
+        contest = Contest.objects.get(title="Поддержка бизнеса · стартовый конкурс")
+        Contest.objects.filter(pk=contest.pk).update(status="active", rubric=demo_rubric())
+        with self.assertRaises(ValidationError):
+            start_next(self.admin, contest.pk)
+        self.assertFalse(Attempt.objects.exists())

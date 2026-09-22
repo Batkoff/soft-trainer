@@ -6,6 +6,7 @@ from django.db import transaction
 from django.shortcuts import redirect, render
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.cache import never_cache
 from .ai_configuration import cipher
 from .evaluation_profiles import current_profile, profile_has_key
 from .forms import AIConfigurationForm
@@ -13,6 +14,7 @@ from .models import AIConfiguration
 from .services import audit
 
 
+@never_cache
 @sensitive_post_parameters("api_key")
 @login_required
 @require_http_methods(["GET", "POST"])

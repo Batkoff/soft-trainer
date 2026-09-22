@@ -5,8 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
-from trainer.models import CalibrationCase, Contest, Exercise, default_rubric
-from trainer.services import activate_contest
+from trainer.models import Contest, Exercise, default_rubric
 
 EXAMPLES = [
     ("Возврат ещё не пришёл", "Возвраты", "Почему возврат опять не пришёл? Мне вчера сказали ждать, сколько можно?",
@@ -78,9 +77,4 @@ class Command(BaseCommand):
             contest.participants.set([admin_user, *employees])
             contest.exercises.set(exercises)
             # Запускается администратором после подключения модели.
-        elif contest.status != Contest.Status.FINISHED:
-            # Идемпотентно чинит уже созданный старый демо-конкурс при обновлении.
-            # Архивные условия и состав участников при перезапуске не трогаем.
-            contest.participants.add(admin_user)
-            Contest.objects.filter(pk=contest.pk).update(first_prize=100, second_prize=70, third_prize=50)
-        self.stdout.write(self.style.SUCCESS("Демо готово: admin и demo1–demo5. Существующие пароли и результаты не изменены."))
+        self.stdout.write(self.style.SUCCESS("Учебный набор готов: admin, demo1–demo5 и черновик конкурса. Существующие данные сохранены."))

@@ -402,6 +402,14 @@ class CalibrationCaseAdmin(AuditAdmin):
     list_display = ("title", "exercise", "expected_min", "expected_max", "expected_hard")
     actions = ("run_cases",)
 
+    def get_form(self, request, obj=None, **kwargs):
+        from django.conf import settings
+        form = super().get_form(request, obj, **kwargs)
+        if not getattr(settings, "ALLOW_TEST_EVALUATOR", False) and "scenario" in form.base_fields:
+            form.base_fields["scenario"].choices = [("real", "Оценка нейросетью")]
+            form.base_fields["scenario"].initial = "real"
+        return form
+
     @admin.action(description="Запустить выбранные примеры калибровки")
     def run_cases(self, request, queryset):
         started = 0
@@ -415,7 +423,7 @@ class CalibrationCaseAdmin(AuditAdmin):
             except ValidationError as exc:
                 self.message_user(request, f"{case.title}: {'; '.join(exc.messages)}", messages.ERROR)
         if started:
-            self.message_user(request, f"В очереди: {started}. Результаты — в «Калибратор — запуски» и аналитике.")
+            self.message_user(request, f"В очереди: {started}. Результаты — в «Проверки эталонов» и аналитике.")
 
 @admin.register(CalibrationRun)
 class CalibrationRunAdmin(ReadOnlyAdmin):

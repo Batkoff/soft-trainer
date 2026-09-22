@@ -5,6 +5,7 @@
 <div class="daily-count">{{ submitted }}<span>/ {{ contest.daily_limit }}</span></div><h2>сообщений отправлено</h2>
 <div class="slot-strip" aria-label="Прогресс тренировки">{% for slot in slots %}<div class="slot {% if slot.attempt.status == 'graded' %}done{% elif slot.attempt %}started{% endif %}">{% if slot.attempt.status == 'graded' %}✓{% else %}{{ slot.number }}{% endif %}</div>{% endfor %}</div>
 {% if can_start %}<form method="post" action="{% url 'start' contest.pk %}">{% csrf_token %}<button type="submit" class="button primary">{% if writing %}Продолжить задание{% else %}Начать задание{% endif %}<span>→</span></button></form>
+{% elif grading_unavailable %}<p class="complete-note">{{ grading_unavailable }}</p>{% if user.is_superuser %}<a class="button" href="{% url 'ai_settings' %}">Настроить нейросеть</a>{% endif %}
 {% elif not contest.accepts_answers %}<p class="complete-note">{{ contest.availability_message }}</p>
 {% elif not is_participant %}<p class="complete-note">Вы не включены в участников этого конкурса.</p>{% if user.is_staff %}<a class="button primary" href="{% url 'sandbox' %}">Начать тренировку в песочнице →</a><p class="small muted">Для участия в рейтинге добавьте свой аккаунт в новый конкурс до его запуска.</p>{% endif %}
 {% else %}<p class="complete-note">На сегодня всё. Возвращайтесь завтра.</p>{% endif %}

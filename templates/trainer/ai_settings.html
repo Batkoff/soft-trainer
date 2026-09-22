@@ -1,6 +1,6 @@
 {% extends 'base.html' %}{% block title %}Нейросеть — Тон{% endblock %}{% block content %}
 <div class="page-heading"><div><p class="eyebrow">НАСТРОЙКИ ПРОЕКТА</p><h1>Нейросеть</h1><p class="muted">Подключите оценку ответов через OpenRouter или OpenAI.</p></div></div>
 <section class="card form-card"><p>{% if key_present %}Ключ текущего провайдера сохранён.{% else %}Ключ текущего провайдера не настроен.{% endif %}</p>
-<form method="post">{% csrf_token %}{{ form.as_p }}<button class="button primary" type="submit">Сохранить подключение</button></form></section>
+<form method="post" data-ai-settings>{% csrf_token %}{{ form.as_p }}<button class="button primary" type="submit">Сохранить подключение</button></form></section>
 <section class="card form-card"><h2>Проверить подключение</h2><p>После сохранения откройте песочницу и отправьте ответ. Так проверяется весь путь: запрос, очередь и разбор. Запрос оплачивается по тарифу провайдера; доступность бесплатных моделей и их лимиты зависят от OpenRouter.</p><a class="button" href="{% url 'sandbox' %}">Открыть песочницу →</a>
 <p>У действующих конкурсов модель закреплена в правилах. Старые тестовые конкурсы доступны для просмотра результатов; для нейросети создайте новый конкурс.</p><p class="small muted">Ключ хранится зашифрованным. Сохраняйте резервную копию .env вместе с базой: SECRET_KEY нужен для расшифровки.</p></section>{% endblock %}

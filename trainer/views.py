@@ -94,6 +94,12 @@ def home(request):
     contest = selected_contest(request)
     if contest and contest.status == Contest.Status.FINISHED:
         return redirect(f"{reverse('leaderboard')}?contest={contest.pk}")
+    grading_unavailable = ""
+    if contest:
+        try:
+            services.ensure_real_profile(contest.rubric)
+        except ValidationError as error:
+            grading_unavailable = "; ".join(error.messages)
     today = timezone.localdate()
     attempts = Attempt.objects.filter(user=request.user, mode=Attempt.Mode.RATED)
     if contest:
@@ -110,7 +116,8 @@ def home(request):
         "slots": slots, "writing": writing, "today": today,
         "submitted": sum(a.status != Attempt.Status.WRITING for a in daily),
         "pending": attempts.filter(status__in=["queued", "evaluating", "retry"]).count(),
-        "can_start": contest and contest.accepts_answers and contest.participants.filter(pk=request.user.pk).exists() and
+        "grading_unavailable": grading_unavailable,
+        "can_start": not grading_unavailable and contest and contest.accepts_answers and contest.participants.filter(pk=request.user.pk).exists() and
             (writing or len(daily) < contest.daily_limit),
         "recent": attempts.exclude(status=Attempt.Status.WRITING)[:8], "standing": row,
         "average": round(total["average"] or 0, 1), "nav": "training",

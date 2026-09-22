@@ -121,7 +121,7 @@ def verify_admin_access(settings, *, reset=False):
             # Следующий запуск проверит тот же пароль; ключи и другие настройки сохраняются.
             path = ROOT / ".env"
             lines = path.read_text(encoding="utf-8-sig").splitlines()
-            lines = ["DEMO_PASSWORD=" + password if line.startswith("DEMO_PASSWORD=") else line for line in lines]
+            lines = ["DEMO_PASSWORD=" + password if line.partition("=")[0].strip() == "DEMO_PASSWORD" else line for line in lines]
             private_write(path, "\n".join(lines) + "\n")
     else:
         private_write(ROOT / ".demo-credentials.txt", "Тон · существующая учётная запись admin\nПароль отличается от начального; он сохранён без изменений.\nЕсли пароль забыт: python scripts/start.py --reset-admin\n")
