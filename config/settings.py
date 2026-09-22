@@ -19,7 +19,8 @@ options = {key: values[-1] for key, values in parse_qs(db.query).items()}
 host = options.pop("host", db.hostname or "localhost")
 DATABASES = {"default": {
     "ENGINE": "django.db.backends.postgresql", "NAME": unquote(db.path.lstrip("/")) or "postgres",
-    "USER": unquote(db.username or "postgres"), "PASSWORD": unquote(db.password or ""),
+    # Compose передаёт пароль отдельно: символы %, #, @ и / не являются частью URL.
+    "USER": unquote(db.username or "postgres"), "PASSWORD": os.environ.get("DATABASE_PASSWORD", unquote(db.password or "")),
     "HOST": host, "PORT": db.port or options.pop("port", "5432"),
     "CONN_MAX_AGE": 60, "CONN_HEALTH_CHECKS": True, "OPTIONS": options,
 }}

@@ -22,13 +22,13 @@ class DatabaseStartupTests(unittest.TestCase):
         calls = self.run_database([result(), result()])
         self.assertEqual(len(calls), 2)
         self.assertEqual(calls[0].args[-1], "db")
-        self.assertEqual(calls[1].args[:3], ("exec", "-T", "db"))
+        self.assertEqual(calls[1].args, start.APP_PROBE)
 
     def test_wrong_password_is_repaired_then_verified(self):
-        calls = self.run_database([result(), result(2, "password authentication failed"), result(), result(), result()])
+        calls = self.run_database([result(), result(42, "password authentication failed"), result(), result(), result()])
         self.assertEqual(len(calls), 5)
         self.assertEqual(calls[3].args[-1], start.SYNC_PASSWORD)
-        self.assertEqual(calls[4].args[-1], start.CHECK_PASSWORD)
+        self.assertEqual(calls[4].args, start.APP_PROBE)
         self.assertTrue(all("-T" in call.args for call in calls[1:]))
         self.assertFalse(any("down" in call.args for call in calls))
 
@@ -38,12 +38,12 @@ class DatabaseStartupTests(unittest.TestCase):
         self.assertEqual(command.call_count, 2)
 
     def test_local_access_denied_does_not_weaken_authentication(self):
-        with self.assertRaisesRegex(RuntimeError, "запрещено локальное"), patch.object(start, "compose", side_effect=[result(), result(2, "password authentication failed"), result(2)]) as command, contextlib.redirect_stdout(io.StringIO()):
+        with self.assertRaisesRegex(RuntimeError, "запрещено локальное"), patch.object(start, "compose", side_effect=[result(), result(42, "password authentication failed"), result(2)]) as command, contextlib.redirect_stdout(io.StringIO()):
             start.ensure_database()
         self.assertEqual(command.call_count, 3)
 
     def test_repair_failure_stops_startup(self):
-        with self.assertRaisesRegex(RuntimeError, "Не удалось согласовать"), patch.object(start, "compose", side_effect=[result(), result(2, "password authentication failed"), result(), result(2)]), contextlib.redirect_stdout(io.StringIO()):
+        with self.assertRaisesRegex(RuntimeError, "Не удалось согласовать"), patch.object(start, "compose", side_effect=[result(), result(42, "password authentication failed"), result(), result(2)]), contextlib.redirect_stdout(io.StringIO()):
             start.ensure_database()
 
     def test_secret_is_not_a_command_argument(self):

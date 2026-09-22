@@ -25,7 +25,11 @@ jobs:
       - name: Recover an existing database after a password mismatch
         run: |
           docker compose exec -T db psql -X -U trainer -d trainer -v ON_ERROR_STOP=1 -c "CREATE TABLE startup_sentinel (value integer); INSERT INTO startup_sentinel VALUES (42); ALTER ROLE trainer PASSWORD 'ci-only-stale-password';"
+          status=0
+          docker compose run --rm --no-deps -T init python scripts/check_database.py || status=$?
+          test "$status" -eq 42
           python scripts/start.py
+          docker compose run --rm --no-deps -T init python scripts/check_database.py
           docker compose exec -T db sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql -X -w -h 127.0.0.1 -U trainer -d trainer -Atqc "SELECT value FROM startup_sentinel"' > /tmp/sentinel.txt
           grep -qx 42 /tmp/sentinel.txt
       - name: Check migrations and application tests

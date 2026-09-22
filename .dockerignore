@@ -12,5 +12,6 @@
 !static/**
 !scripts/
 !scripts/initialize.py
+!scripts/check_database.py
 **/__pycache__/
 **/*.py[cod]
