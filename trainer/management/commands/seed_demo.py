@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
-from trainer.models import CalibrationCase, Contest, Exercise, demo_rubric
+from trainer.models import CalibrationCase, Contest, Exercise, default_rubric
 from trainer.services import activate_contest
 
 EXAMPLES = [
@@ -70,23 +70,17 @@ class Command(BaseCommand):
                 "allowed_actions": allowed, "forbidden_promises": forbidden, "status": Exercise.Status.PUBLISHED})
             exercises.append(item)
         now = timezone.now()
-        contest, created = Contest.objects.get_or_create(title="Демо · Поддержка бизнеса", defaults={
-            "starts_at": now-timedelta(minutes=1), "ends_at": now+timedelta(days=30), "rubric": demo_rubric(),
+        contest, created = Contest.objects.get_or_create(title="Поддержка бизнеса · стартовый конкурс", defaults={
+            "starts_at": now-timedelta(minutes=1), "ends_at": now+timedelta(days=30), "rubric": default_rubric(),
             "first_prize": 100, "second_prize": 70, "third_prize": 50})
         if created:
             # Администратор тоже может пройти демо-конкурс и проверить полный путь.
             contest.participants.set([admin_user, *employees])
             contest.exercises.set(exercises)
-            activate_contest(admin_user, contest.pk)
+            # Запускается администратором после подключения модели.
         elif contest.status != Contest.Status.FINISHED:
             # Идемпотентно чинит уже созданный старый демо-конкурс при обновлении.
             # Архивные условия и состав участников при перезапуске не трогаем.
             contest.participants.add(admin_user)
             Contest.objects.filter(pk=contest.pk).update(first_prize=100, second_prize=70, third_prize=50)
-        CalibrationCase.objects.get_or_create(title="Контроль: успешная тестовая проверка", defaults={
-            "exercise": exercises[0], "answer": "Вижу, что возврат уже обрабатывается. Деньги должны поступить в течение 3 рабочих дней. Ускорить зачисление не получится.",
-            "expected_min": 80, "expected_max": 80})
-        CalibrationCase.objects.get_or_create(title="Контроль: обнуление при hard-ошибке", defaults={
-            "exercise": exercises[0], "answer": "Тестовый ответ для симуляции ошибки.", "scenario": "hard_error",
-            "expected_min": 0, "expected_max": 0, "expected_hard": "violated"})
         self.stdout.write(self.style.SUCCESS("Демо готово: admin и demo1–demo5. Существующие пароли и результаты не изменены."))

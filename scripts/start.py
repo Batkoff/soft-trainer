@@ -1,5 +1,7 @@
 """Запуск с проверкой Docker и ожиданием готовности сайта. Python 3.10+."""
 import argparse
+import json
+import secrets
 import os
 import re
 from pathlib import Path
@@ -9,9 +11,9 @@ import sys
 import time
 
 if __package__:
-    from .prepare_demo import ROOT, hostname, prepare, read_env
+    from .prepare_demo import ROOT, hostname, prepare, read_env, private_write
 else:
-    from prepare_demo import ROOT, hostname, prepare, read_env
+    from prepare_demo import ROOT, hostname, prepare, read_env, private_write
 
 
 # exec -T намеренно не открывает TTY: Git Bash не зависает на приглашениях psql.
@@ -99,10 +101,38 @@ def ensure_docker():
                        "Конкретная ошибка: docker info")
 
 
+def verify_admin_access(settings, *, reset=False):
+    """Показывает пароль только после проверки в действующей базе."""
+    password = secrets.token_urlsafe(24) if reset else settings["DEMO_PASSWORD"]
+    command = ["exec", "-T", "web", "python", "manage.py", "check_admin_access"]
+    if reset:
+        command.append("--reset-admin")
+    result = compose(*command, input=password if reset else "", capture_output=True,
+                     text=True, encoding="utf-8", timeout=30)
+    if result.returncode:
+        raise RuntimeError("Сайт запущен, но проверить доступ admin не удалось. docker compose exec web python manage.py createsuperuser")
+    try:
+        matches = json.loads(result.stdout.strip().splitlines()[-1])["matches"]
+    except (ValueError, IndexError, KeyError):
+        raise RuntimeError("Сайт запущен, но проверка пароля вернула непонятный ответ.")
+    if matches:
+        private_write(ROOT / ".demo-credentials.txt", "Тон · проверенный доступ\nЛогин: admin\nПароль: " + password + "\nНе отправляйте этот файл другим.\n")
+        if reset:
+            # Следующий запуск проверит тот же пароль; ключи и другие настройки сохраняются.
+            path = ROOT / ".env"
+            lines = path.read_text(encoding="utf-8-sig").splitlines()
+            lines = ["DEMO_PASSWORD=" + password if line.startswith("DEMO_PASSWORD=") else line for line in lines]
+            private_write(path, "\n".join(lines) + "\n")
+    else:
+        private_write(ROOT / ".demo-credentials.txt", "Тон · существующая учётная запись admin\nПароль отличается от начального; он сохранён без изменений.\nЕсли пароль забыт: python scripts/start.py --reset-admin\n")
+        print("Пароль admin меняли ранее. Используйте свой пароль или восстановите: python scripts/start.py --reset-admin", flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Запустить Тон через Docker Compose")
     parser.add_argument("--host", type=hostname, help="IP/домен для доступа по сети")
     parser.add_argument("--port", type=int, help="Внешний порт сайта")
+    parser.add_argument("--reset-admin", action="store_true", help="Создать новый пароль admin, сохранив остальные учётные записи")
     args = parser.parse_args()
     if not shutil.which("docker"):
         parser.exit(1, "Docker не найден. Установите и откройте Docker Desktop. См. docs/GETTING_STARTED.md\n")
@@ -117,6 +147,7 @@ def main():
         ensure_database()
         print("[4/4] Применяю миграции и запускаю сайт с очередью…", flush=True)
         compose("up", "--wait", "--wait-timeout", "180", check=True)
+        verify_admin_access(settings, reset=args.reset_admin)
     except RuntimeError as error:
         show_failure_logs()
         parser.exit(1, f"{error}\n")
@@ -137,7 +168,7 @@ def main():
         print(f"\nТон готов: http://localhost:{settings['HTTP_PORT']}")
     if args.host and site_address == ":80":
         print(f"Адрес в сети: http://{args.host}:{settings['HTTP_PORT']}")
-    print("Логин и начальный пароль: .demo-credentials.txt")
+    print("Данные входа и восстановление доступа: .demo-credentials.txt")
 
 
 if __name__ == "__main__":

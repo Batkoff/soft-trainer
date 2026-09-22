@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.getenv("DEBUG", "0") == "1"
 SECRET_KEY = os.environ.get("SECRET_KEY", "")
 if not SECRET_KEY:
-    raise ImproperlyConfigured("Задайте SECRET_KEY. Для локального демо используйте scripts/run_local.py.")
+    raise ImproperlyConfigured("Задайте SECRET_KEY. Для локального демо используйте scripts/start.py.")
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]").split(",")
 CSRF_TRUSTED_ORIGINS = [x for x in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if x]
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
@@ -25,7 +25,7 @@ DATABASES = {"default": {
     "CONN_MAX_AGE": 60, "CONN_HEALTH_CHECKS": True, "OPTIONS": options,
 }}
 INSTALLED_APPS = [
-    "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
+    "config.admin.TonAdminConfig", "django.contrib.auth", "django.contrib.contenttypes",
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
     "procrastinate.contrib.django", "trainer",
 ]

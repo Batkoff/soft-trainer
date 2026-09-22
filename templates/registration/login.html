@@ -1,6 +1,6 @@
 {% extends 'base.html' %}{% block title %}Вход — Тон{% endblock %}{% block content %}
-<div class="login-layout"><section class="login-intro"><span class="brand-icon large">т</span><p class="eyebrow">ТОН. НАЙДИ СВОЙ.</p><h1>Войди в тон.</h1><p>Пять коротких заданий, чтобы потренироваться объяснять, поддерживать и говорить понятно.</p><div class="login-note"><span>05</span><p>сообщений в день<br><strong>3 минуты на каждое</strong></p></div></section>
-<section class="login-card"><p class="eyebrow">ДЕМО · MLP</p><h2>С возвращением</h2><p class="muted">Войдите под своей учебной учётной записью.</p>
+<div class="login-layout"><section class="login-intro"><span class="brand-icon large">т</span><h1>ТОН. НАЙДИ СВОЙ.</h1><p>Пять коротких заданий, чтобы потренироваться объяснять, поддерживать и говорить понятно.</p><div class="login-note"><span>05</span><p>сообщений в день<br><strong>3 минуты на каждое</strong></p></div></section>
+<section class="login-card"><h2>Войди в тон.</h2><p class="muted">Войдите под своей учебной учётной записью.</p>
 <form method="post">{% csrf_token %}{% if form.errors %}<div class="form-error" role="alert">Проверьте логин и пароль.</div>{% endif %}
 {% if throttled %}<div class="form-error" role="alert">Слишком много попыток входа. Попробуйте через 10 минут.</div>{% endif %}
 <label for="id_username">Логин</label><input type="text" id="id_username" name="username" autocomplete="username" maxlength="150" required autofocus value="{{ form.username.value|default:'' }}">

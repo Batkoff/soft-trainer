@@ -34,3 +34,8 @@ Thumbs.db
 .claude/
 .cursor/
 node_modules/
+
+# Downloaded release files and local startup reports
+*.patch
+startup-log.txt
+build-log.txt

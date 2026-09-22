@@ -53,7 +53,7 @@ def prepare(root=ROOT, host=None, port=None):
         "ALLOWED_HOSTS": "localhost,127.0.0.1,[::1]",
         "CSRF_TRUSTED_ORIGINS": "http://localhost:8080,http://127.0.0.1:8080",
         "HTTP_BIND": "127.0.0.1", "HTTP_PORT": "8080", "SECURE_COOKIES": "0",
-        "DEMO_EVALUATION_DELAY": "2", "LOG_LEVEL": "INFO", "EVALUATOR_BACKEND": "demo",
+        "DEMO_EVALUATION_DELAY": "2", "LOG_LEVEL": "INFO", "EVALUATOR_BACKEND": "openrouter",
         "EVALUATOR_MODEL": "", "OPENAI_API_KEY": "", "OPENROUTER_API_KEY": "",
     }
     updates = {key: value for key, value in defaults.items() if key not in values}

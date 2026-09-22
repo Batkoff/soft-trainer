@@ -1,7 +1,9 @@
 from django.urls import path
 from . import views
+from .ai_views import ai_settings
 
 urlpatterns = [
+    path("settings/ai/", ai_settings, name="ai_settings"),
     path("", views.home, name="home"),
     path("contests/<int:contest_id>/start/", views.start, name="start"),
     path("attempts/<uuid:attempt_id>/", views.attempt_page, name="attempt"),

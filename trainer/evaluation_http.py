@@ -222,9 +222,10 @@ class LiveEvaluator:
             result["_trace"] = self.last_trace
             return result
         provider, model = self.profile["provider"], self.profile["model"]
-        key = {"openai": settings.OPENAI_API_KEY, "openrouter": settings.OPENROUTER_API_KEY}[provider]
+        from .ai_configuration import api_key
+        key = api_key(provider)
         if not key:
-            raise PermanentEvaluationError("API-ключ не настроен. Добавьте ключ выбранного провайдера в .env и пересоздайте worker.")
+            raise PermanentEvaluationError("API-ключ не настроен. Откройте Управление → Нейросеть и сохраните ключ провайдера.")
         task = {name: data.assignment.get(name, "") for name in
                 ("customer_message", "hard_answer", "allowed_actions", "forbidden_promises")}
         task.update(required_facts=facts, employee_answer=data.answer)

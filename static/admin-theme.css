@@ -996,3 +996,17 @@ a.admin-primary {color:var(--ton-on-accent);}
 .calendar table {background:var(--ton-surface);}
 .calendar caption, .calendarbox h2 {background:var(--ton-raised); color:var(--ton-text);}
 .calendarbox .calendarnav-previous, .calendarbox .calendarnav-next {filter:brightness(0) invert(1);}
+
+/* Dashboard cards must wrap without pushing the page beyond the viewport. */
+.practice-dashboard #content { min-width: 0; width: auto; max-width: 1440px; }
+.admin-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+.admin-section-card { min-width: 0; overflow-wrap: anywhere; }
+.admin-advanced summary { cursor: pointer; padding: 16px 0; font-size: 18px; font-weight: 600; }
+.admin-advanced > p { max-width: 800px; line-height: 1.6; }
+.admin-quicknav { flex-wrap: wrap; }
+@media (max-width: 760px) {
+  .admin-welcome { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .admin-workflow { flex-wrap: wrap; gap: 12px; }
+  .admin-section-heading { align-items: flex-start; }
+  #content { padding: 16px; }
+}

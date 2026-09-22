@@ -15,6 +15,7 @@
 {% if user.is_staff %}<p class="nav-label spaced">УПРАВЛЕНИЕ</p>
 <a href="{% url 'analytics' %}" class="nav-link {% if nav == 'analytics' %}active{% endif %}"><span class="nav-symbol">◴</span>Аналитика</a>
 <a href="{% url 'sandbox' %}" class="nav-link {% if nav == 'sandbox' %}active{% endif %}"><span class="nav-symbol">◇</span>Песочница</a>
+{% if user.is_superuser %}<a href="{% url 'ai_settings' %}" class="nav-link">Нейросеть</a>{% endif %}
 <a href="{% url 'admin:index' %}" class="nav-link"><span class="nav-symbol">⚙</span>Админка</a>
 <a href="{% url 'guide' %}" class="nav-link {% if nav == 'guide' %}active{% endif %}"><span class="nav-symbol">?</span>Как пользоваться</a>{% endif %}</nav>
 <div class="sidebar-bottom"><span class="demo-pill">MLP · {{ app_version }}</span><p>Тон. Найди свой.</p>
@@ -23,6 +24,6 @@
 {% endif %}
 <div class="workspace {% if not user.is_authenticated %}public{% endif %}">
 {% if user.is_authenticated %}<header class="topbar"><span>Тренажёр коммуникации</span><span class="muted">Учебная среда</span></header>{% endif %}
-<main id="main">{% if user.is_authenticated %}<div class="demo-notice"><span class="notice-mark">i</span><span>{% if grading_is_demo %}Демонстрационный оценщик: баллы проверяют механику и не отражают качество текста.{% else %}Проверка нейросетью. Спорную оценку можно пересмотреть с администратором.{% endif %}</span></div>{% endif %}
+<main id="main">{% if user.is_authenticated %}<div class="demo-notice"><span class="notice-mark">i</span><span>{% if grading_is_demo %}История тестового конкурса. Для новой тренировки администратор создаёт конкурс с нейросетью.{% else %}Проверка нейросетью. Спорную оценку можно пересмотреть с администратором.{% endif %}</span></div>{% endif %}
 {% for message in messages %}<div class="message {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
 {% block content %}{% endblock %}</main><footer>Тон · <a href="{% url 'updates' %}">v{{ app_version }} · Что нового</a> · {% include "includes/author.html" %}</footer></div></body></html>
