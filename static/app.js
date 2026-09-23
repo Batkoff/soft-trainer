@@ -148,3 +148,25 @@ if (aiSettings) {
   model.addEventListener("change", updateModelChoices);
   updateModelChoices();
 }
+
+
+const contestNavigation = document.querySelector("[data-contest-navigation]");
+if (contestNavigation && contestNavigation.dataset.archiveMode !== "true") {
+  async function refreshContestIfChanged() {
+    if (document.hidden) return;
+    try {
+      const response = await fetch(window.location.pathname, {credentials: "same-origin", cache: "no-store"});
+      if (!response.ok) return;
+      const html = await response.text();
+      const fresh = new DOMParser().parseFromString(html, "text/html").querySelector("[data-contest-navigation]");
+      if (!fresh || fresh.dataset.archiveMode === "true") return;
+      if ((fresh.dataset.contestId || "") !== (contestNavigation.dataset.contestId || "")) {
+        window.location.replace(window.location.pathname);
+      }
+    } catch (_) {}
+  }
+  setInterval(refreshContestIfChanged, 5000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshContestIfChanged();
+  });
+}
