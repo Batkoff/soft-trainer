@@ -1,5 +1,7 @@
 {% extends "admin/base.html" %}
 {% load static %}
+{% block bodyclass %}{{ block.super }} ton-admin{% endblock %}
+{% block nav-sidebar %}{% endblock %}
 {% block title %}{{ title }} — Управление · Тон{% endblock %}
 {# Единая тёмная тема. Формы и скрипты админки остаются штатными. #}
 {% block dark-mode-vars %}{% endblock %}
@@ -7,6 +9,7 @@
   {{ block.super }}
   <link rel="stylesheet" href="{% static 'theme.css' %}?v={{ app_version }}">
   <link rel="stylesheet" href="{% static 'admin-theme.css' %}?v={{ app_version }}">
+  <link rel="stylesheet" href="{% static 'sidebar.css' %}?v={{ app_version }}">
 {% endblock %}
 {% block extrahead %}{{ block.super }}<meta name="author" content="Батьков Даниил · @batkoff"><link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">{% endblock %}
 {% block branding %}
@@ -19,11 +22,5 @@
     <form id="logout-form" method="post" action="{% url 'admin:logout' %}">{% csrf_token %}<button type="submit">Выйти</button></form>
   </div>{% endif %}
 {% endblock %}
-{% block nav-global %}
-  {% if has_permission %}<nav class="admin-quicknav" aria-label="Разделы тренажёра">
-    <a href="{% url 'admin:index' %}" {% if request.resolver_match.url_name == 'index' %}aria-current="page"{% endif %}>Управление</a>
-    {% if user.is_superuser %}<a href="{% url 'ai_settings' %}">Нейросеть</a>{% endif %}<a href="{% url 'analytics' %}">Аналитика</a><a href="{% url 'sandbox' %}">Песочница</a><a href="{% url 'leaderboard' %}">Рейтинг</a>{% if perms.trainer.view_evaluationtrace %}<a href="{% url 'admin:trainer_evaluationtrace_changelist' %}">Диагностика API</a>{% endif %}<a href="{% url 'guide' %}">Как пользоваться</a>
-    <a href="{% url 'home' %}" class="admin-back-link">Открыть тренажёр ↗</a>
-  </nav>{% endif %}
-{% endblock %}
+{% block nav-global %}{% if has_permission and not is_popup %}{% include 'includes/sidebar.html' %}{% endif %}{% endblock %}
 {% block footer %}<p class="admin-footer">Тон · <a href="{% url 'updates' %}">v{{ app_version }} · Что нового</a> · {% include "includes/author.html" %}</p>{% endblock %}

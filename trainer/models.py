@@ -13,6 +13,14 @@ class UserProfile(models.Model):
     """Аватар из набора не требует хранения файлов и отдельного сервиса картинок."""
     AVATARS = [("🙂", "🙂 Улыбка"), ("🦊", "🦊 Лиса"), ("🐱", "🐱 Кот"),
                ("🐼", "🐼 Панда"), ("🚀", "🚀 Ракета"), ("🌿", "🌿 Лист")]
+    class Role(models.TextChoices):
+        EMPLOYEE = "employee", "Сотрудник"
+        GROUP_LEADER = "group_leader", "Руководитель группы"
+        SECTOR_LEADER = "sector_leader", "Руководитель сектора"
+
+    role = models.CharField("Роль", max_length=20, choices=Role.choices, default=Role.EMPLOYEE)
+    manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="direct_reports", verbose_name="Руководитель")
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     display_name = models.CharField("Отображаемый ник", max_length=60, blank=True)
     avatar = models.CharField("Аватар", max_length=8, choices=AVATARS, default="🙂")

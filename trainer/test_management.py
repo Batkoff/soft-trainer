@@ -19,23 +19,24 @@ class ManagementTests(TestCase):
         User = get_user_model()
         cls.admin = User.objects.create_superuser("manager", password="test-password")
         cls.leader = User.objects.create_user("leader", password="test-password")
-        apply_role(cls.leader, "leader")
+        apply_role(cls.leader, "group_leader")
         cls.user = User.objects.create_user("employee", password="test-password")
+        UserProfile.objects.create(user=cls.user, manager=cls.leader)
         cls.exercise = Exercise.objects.create(title="Возврат", customer_message="Где возврат?",
             hard_answer="До 3 рабочих дней.", required_facts="До 3 рабочих дней.", status="published")
 
     def test_leader_cannot_administer_users_exercises_or_contests(self):
         self.client.force_login(self.leader)
-        for path in ["/admin/auth/user/", "/admin/auth/user/add/", "/admin/trainer/exercise/add/", "/admin/trainer/contest/add/"]:
+        for path in ["/admin/auth/user/", "/admin/auth/user/add/", "/admin/trainer/exercise/add/", "/admin/trainer/contest/add/", "/admin/", "/admin/trainer/exercise/", "/admin/trainer/attempt/"]:
             self.assertEqual(self.client.get(path).status_code, 403, path)
-        for path in ["/admin/", "/admin/trainer/exercise/", "/admin/trainer/attempt/", "/analytics/", "/sandbox/", "/guide/"]:
+        for path in ["/analytics/", "/sandbox/", "/guide/"]:
             self.assertEqual(self.client.get(path).status_code, 200, path)
         self.assertEqual(self.client.post(f"/admin/trainer/exercise/{self.exercise.pk}/new-version/").status_code, 403)
 
     def test_create_leader_with_one_role_field(self):
         self.client.force_login(self.admin)
         response = self.client.post("/admin/auth/user/add/", {"username": "new-leader", "first_name": "Новый",
-            "last_name": "Руководитель", "email": "", "role": "leader",
+            "last_name": "Руководитель", "email": "", "role": "group_leader",
             "password1": "secure-test-leader-123", "password2": "secure-test-leader-123", "_save": "1"})
         self.assertEqual(response.status_code, 302)
         user = get_user_model().objects.get(username="new-leader")
@@ -58,6 +59,7 @@ class ManagementTests(TestCase):
         self.assertTrue(self.admin.is_superuser)
 
     def test_demoting_leader_removes_review_permission(self):
+        UserProfile.objects.filter(manager=self.leader).update(manager=None)
         apply_role(self.leader, "employee")
         self.assertFalse(self.leader.is_staff)
         self.assertFalse(self.leader.has_perm("trainer.review_attempt"))
@@ -68,6 +70,8 @@ class ManagementTests(TestCase):
 
     def test_soft_review_updates_display_score_and_audit_preserving_original(self):
         attempt = start_sandbox(self.admin, self.exercise, "normal", "Ответ")
+        Attempt.objects.filter(pk=attempt.pk).update(user=self.user)
+        attempt.user = self.user
         evaluate_attempt(str(attempt.pk))
         original = attempt.evaluation.payload
         self.client.force_login(self.leader)
@@ -98,7 +102,7 @@ class ManagementTests(TestCase):
         self.assertFalse(self.user.is_superuser)
         self.assertEqual(self.user.profile.display_name, "Новый ник")
         self.assertEqual(self.user.profile.avatar, "🦊")
-        self.assertFalse(UserProfile.objects.filter(user=self.admin).exists())
+        self.assertFalse(UserProfile.objects.filter(user=self.admin, display_name="Новый ник").exists())
         self.assertContains(self.client.get("/"), "Новый ник")
 
     def test_edit_published_exercise_creates_editable_copy(self):

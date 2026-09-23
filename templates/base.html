@@ -4,23 +4,10 @@
 <title>{% block title %}Тон — тренажёр общения{% endblock %}</title>
 <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
 <link rel="stylesheet" href="{% static 'theme.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'app.css' %}?v={{ app_version }}"><script src="{% static 'vendor/htmx.min.js' %}" defer></script><script src="{% static 'app.js' %}?v={{ app_version }}" defer></script></head>
+<link rel="stylesheet" href="{% static 'app.css' %}?v={{ app_version }}"><link rel="stylesheet" href="{% static 'sidebar.css' %}?v={{ app_version }}"><script src="{% static 'vendor/htmx.min.js' %}" defer></script><script src="{% static 'app.js' %}?v={{ app_version }}" defer></script></head>
 <body><a class="skip" href="#main">К содержимому</a>
 {% if user.is_authenticated %}
-<aside class="sidebar"><a href="{% url 'home' %}" class="brand"><span class="brand-icon">т</span><span>Тон<span class="brand-sub">Найди свой.</span></span></a>
-<nav aria-label="Основное меню"><p class="nav-label">ТРЕНАЖЁР</p>
-<a href="{% url 'home' %}" class="nav-link {% if nav == 'training' %}active{% endif %}"><span class="nav-symbol">▤</span>Тренировка</a>
-<a href="{% url 'leaderboard' %}" class="nav-link {% if nav == 'leaderboard' %}active{% endif %}"><span class="nav-symbol">↗</span>Рейтинг</a>
-<a href="{% url 'profile' %}" class="nav-link {% if nav == 'profile' %}active{% endif %}"><span class="nav-symbol">◎</span>Мой профиль</a>
-{% if user.is_staff %}<p class="nav-label spaced">УПРАВЛЕНИЕ</p>
-<a href="{% url 'analytics' %}" class="nav-link {% if nav == 'analytics' %}active{% endif %}"><span class="nav-symbol">◴</span>Аналитика</a>
-<a href="{% url 'sandbox' %}" class="nav-link {% if nav == 'sandbox' %}active{% endif %}"><span class="nav-symbol">◇</span>Песочница</a>
-{% if user.is_superuser %}<a href="{% url 'ai_settings' %}" class="nav-link">Нейросеть</a>{% endif %}
-<a href="{% url 'admin:index' %}" class="nav-link"><span class="nav-symbol">⚙</span>Админка</a>
-<a href="{% url 'guide' %}" class="nav-link {% if nav == 'guide' %}active{% endif %}"><span class="nav-symbol">?</span>Как пользоваться</a>{% endif %}</nav>
-<div class="sidebar-bottom"><span class="demo-pill">MLP · {{ app_version }}</span><p>Тон. Найди свой.</p>
-<div class="user-line"><span class="avatar">{{ current_avatar }}</span><div><strong>{{ current_display_name }}</strong><small>{{ current_role }}</small></div></div>
-<form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="logout" type="submit">Выйти из аккаунта</button></form></div></aside>
+{% include 'includes/sidebar.html' %}
 {% endif %}
 <div class="workspace {% if not user.is_authenticated %}public{% endif %}">
 {% if user.is_authenticated %}<header class="topbar"><span>Тренажёр коммуникации</span><span class="muted">Учебная среда</span></header>{% endif %}

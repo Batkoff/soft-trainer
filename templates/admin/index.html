@@ -25,7 +25,7 @@
         {% elif model.object_name == 'AuditEvent' %}История отправок, изменений и решений администратора.
         {% elif model.object_name == 'EvaluationTrace' %}Полный prompt, ответ модели, токены, время и ошибки. Для отладки API.
         {% elif model.object_name == 'Evaluation' %}Нормализованный результат, который получил сотрудник.
-        {% elif model.object_name == 'User' %}Учётные записи сотрудников и администраторов.
+        {% elif model.object_name == 'User' %}Роли, подчинённость, сотрудники, руководители групп и секторов.
         {% elif model.object_name == 'Group' %}Группы пользователей и разрешения на действия.
         {% else %}Просмотр записей и доступные действия.{% endif %}</p>
       {% if model.admin_url %}<a class="admin-card-open" href="{{ model.admin_url }}">Открыть раздел <span aria-hidden="true">→</span></a>{% endif %}

@@ -1,0 +1,43 @@
+/* Общее меню тренажёра и админки: один шаблон, одинаковая геометрия. */
+.ton-sidebar {box-sizing:border-box;position:fixed;inset:0 auto 0 0;width:242px;padding:30px 18px 20px;background:var(--ton-surface);border-right:1px solid var(--ton-border);display:flex;flex-direction:column;overflow-y:auto;z-index:40;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.5;color:var(--ton-text)}
+.ton-sidebar * {box-sizing:border-box}
+.ton-sidebar a {text-decoration:none}
+.ton-brand {display:flex;gap:12px;align-items:center;font-size:26px;font-weight:750;color:var(--ton-text)!important;padding:0 6px}
+.ton-brand-icon {display:grid;place-items:center;flex:0 0 44px;height:44px;background:var(--ton-lime);color:var(--ton-on-accent);border-radius:13px;font-size:32px}
+.ton-brand small {display:block;font-size:11px;color:var(--ton-muted);font-weight:500}
+.ton-sidebar nav {margin-top:28px}
+.ton-nav-label {font-size:10px!important;letter-spacing:1.4px;color:var(--ton-muted);padding:0 12px;margin:22px 0 10px!important}
+.ton-sidebar .ton-nav-link {display:flex;align-items:center;gap:10px;padding:11px 12px;margin-bottom:5px;border-radius:12px;font-size:14px;font-weight:550;color:var(--ton-muted)}
+.ton-nav-link>span {width:22px;text-align:center;font-size:21px;flex-shrink:0}
+.ton-sidebar .ton-nav-link:hover,.ton-sidebar .ton-nav-link.active {background:var(--ton-accent-soft);color:var(--ton-text)}
+.ton-sidebar a:focus-visible,.ton-sidebar button:focus-visible {outline:2px solid var(--ton-lime);outline-offset:2px}
+.ton-sidebar-bottom {margin-top:auto;padding:26px 10px 0}
+.ton-sidebar .ton-version {font-size:11px;color:var(--ton-muted)}
+.ton-user {display:flex;align-items:center;gap:10px;margin-top:15px;padding-top:16px;border-top:1px solid var(--ton-border)}
+.ton-user strong {display:block;font-size:13px;overflow-wrap:anywhere}.ton-user small {display:block;font-size:11px;color:var(--ton-muted)}
+.ton-avatar {font-size:22px;flex-shrink:0}.ton-sidebar .ton-logout {background:none;border:0;padding:14px 0 0;font:inherit;font-size:12px;color:var(--ton-muted);cursor:pointer}
+.workspace:not(.public) {margin-left:242px}
+body.ton-admin #container {margin-left:242px;width:calc(100% - 242px);min-width:0}
+body.ton-admin #main .content {margin-left:0;min-width:0}
+body.ton-admin #header {padding:20px 30px;min-height:74px;box-sizing:border-box}
+body.ton-admin .main>nav.sticky,body.ton-admin #toggle-nav-sidebar {display:none}
+.stats-filter {display:flex;gap:14px;align-items:center;flex-wrap:wrap}.stats-filter select {flex:1;min-width:180px}
+.supervisor-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}.supervisor-card {padding:20px;border:1px solid var(--ton-border);border-radius:16px;background:var(--ton-surface)}.supervisor-card strong {display:block;margin-top:8px}
+@media(max-width:900px) {
+.ton-sidebar {position:relative;width:100%;inset:auto;padding:16px;border-right:0;border-bottom:1px solid var(--ton-border)}
+.ton-brand {font-size:23px}.ton-sidebar nav {display:flex;gap:5px;overflow-x:auto;margin-top:15px}.ton-nav-label,.ton-sidebar-bottom {display:none}.ton-sidebar .ton-nav-link {white-space:nowrap;margin:0;padding:8px 10px}.ton-nav-link>span {font-size:18px}
+.workspace:not(.public),body.ton-admin #container {margin-left:0;width:100%}
+body.ton-admin #header {padding:16px}.stats-filter {align-items:stretch;flex-direction:column}
+}
+
+body.ton-admin.popup #container {margin-left:0;width:100%}
+
+body.ton-admin.login #container {margin:80px auto;width:28em;max-width:calc(100% - 32px)}
+
+/* Подбор сотрудников помещается и в узкую карточку пользователя. */
+.ton-admin .selector {display:flex;flex-wrap:wrap;gap:12px;width:100%;max-width:850px}
+.ton-admin .selector-available,.ton-admin .selector-chosen {float:none;flex:1 1 240px;width:auto;min-width:0}
+.ton-admin .selector select {width:100%;max-width:100%;box-sizing:border-box}
+.ton-admin .selector .selector-filter input {max-width:calc(100% - 40px);box-sizing:border-box}
+.ton-admin .selector ul.selector-chooser {align-self:center;margin:0;flex-shrink:0}
+@media(max-width:600px) {.ton-admin .selector {flex-direction:column}.ton-admin .selector-available,.ton-admin .selector-chosen {flex-basis:auto;width:100%}}

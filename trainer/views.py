@@ -20,14 +20,14 @@ from .models import Attempt, AuditEvent, CalibrationRun, Contest, LoginThrottle,
 from .reports import standings
 from . import services
 from .evaluation_profiles import profile_for_rubric
-from .people import can_review
+from .people import can_review, is_manager, visible_users
 from .releases import RELEASES
 
 def staff_required(view):
     @wraps(view)
     @login_required
     def wrapped(request, *args, **kwargs):
-        if not request.user.is_staff:
+        if not is_manager(request.user):
             raise PermissionDenied
         return view(request, *args, **kwargs)
     return wrapped
@@ -56,7 +56,7 @@ class TrainerLoginView(LoginView):
 
 def visible_contests(user):
     contests = Contest.objects.exclude(status=Contest.Status.DRAFT)
-    return contests if user.is_staff else contests.filter(participants=user)
+    return contests if user.is_superuser else contests.filter(participants__in=visible_users(user)).distinct()
 
 def selected_contest(request):
     contests = visible_contests(request.user)
@@ -137,7 +137,7 @@ def start(request, contest_id):
         return redirect("home")
 
 def owned_attempt(request, attempt_id):
-    qs = Attempt.objects.all() if request.user.is_staff else Attempt.objects.filter(user=request.user)
+    qs = Attempt.objects.filter(user__in=visible_users(request.user))
     return get_object_or_404(qs.select_related("exercise", "contest", "user"), pk=attempt_id)
 
 @login_required
@@ -157,7 +157,7 @@ def attempt_page(request, attempt_id):
     review = AuditEvent.objects.filter(object_id=str(attempt.pk), action="manual_review").first()
     return render(request, "trainer/attempt.html", {"attempt": attempt, "payload": payload, "skills": skills,
         "review": review, "skills_reviewed": bool(attempt.reviewed_skills),
-        "editable": attempt.user_id == request.user.pk, "can_review": can_review(request.user),
+        "editable": attempt.user_id == request.user.pk, "can_review": can_review(request.user, attempt),
         "nav": "training" if attempt.user_id == request.user.pk else "analytics", "server_now": timezone.now(),
         "grading_is_demo": payload.get("is_demo", profile_for_rubric(attempt.rubric).get("provider") == "demo")})
 
@@ -233,24 +233,12 @@ def sandbox(request):
         "recent": Attempt.objects.filter(mode="sandbox", user=request.user)[:10]})
 
 @staff_required
-def analytics(request):
-    contest = selected_contest(request)
-    attempts = Attempt.objects.filter(contest=contest, mode="rated") if contest else Attempt.objects.none()
-    graded = attempts.filter(status="graded")
-    counts = {item["status"]: item["count"] for item in attempts.values("status").annotate(count=Count("id"))}
-    data = {"participants": contest.participants.count() if contest else 0,
-        "started": attempts.count(), "graded": graded.count(), "average": round(graded.aggregate(value=Avg("score"))["value"] or 0, 1),
-        "hard_errors": graded.filter(hard_verdict="violated").count(), "timed_out": attempts.filter(timed_out=True).count(),
-        "pending": sum(counts.get(key, 0) for key in ("queued", "evaluating", "retry")), "review": counts.get("review", 0)}
-    return render(request, "trainer/analytics.html", {"contest": contest, **contest_navigation(request, contest),
-        "stats": data, "recent": attempts.select_related("user")[:25],
-        "runs": CalibrationRun.objects.select_related("case", "attempt")[:10], "nav": "analytics"})
-
-@staff_required
 def review(request, attempt_id):
     if not can_review(request.user):
         raise PermissionDenied
     attempt = owned_attempt(request, attempt_id)
+    if not can_review(request.user, attempt):
+        raise PermissionDenied
     evaluation = getattr(attempt, "evaluation", None)
     payload = evaluation.payload if evaluation else {}
     initial_skills = attempt.reviewed_skills or {key: round(value*100/payload.get("skill_scale", 4))
@@ -274,7 +262,21 @@ def profile(request):
         services.audit(request.user, "profile_updated", item, fields=list(form.changed_data))
         messages.success(request, "Профиль сохранён.")
         return redirect("profile")
-    return render(request, "trainer/profile.html", {"form": form, "nav": "profile"})
+    from django.contrib.auth import get_user_model
+    from .people import user_role, display_name
+    role = user_role(request.user)
+    supervisors = []
+    group = item.manager if role == "employee" and item.manager_id else None
+    sector = (getattr(group, "profile", None).manager if group and getattr(group, "profile", None)
+              else item.manager if role == "group_leader" and item.manager_id else None)
+    if role == "employee":
+        supervisors.append({"role": "Руководитель группы", "name": display_name(group) if group else "Не назначен"})
+    if role in ("employee", "group_leader"):
+        supervisors.append({"role": "Руководитель сектора", "name": display_name(sector) if sector else "Не назначен"})
+    if role in ("group_leader", "sector_leader"):
+        supervisors.extend({"role": "Администратор", "name": display_name(admin)} for admin in
+            get_user_model().objects.filter(is_superuser=True, is_active=True).select_related("profile"))
+    return render(request, "trainer/profile.html", {"form": form, "nav": "profile", "supervisors": supervisors})
 
 @staff_required
 def guide(request):

@@ -41,4 +41,4 @@ def ai_settings(request):
                   model=config.model, key_replaced=bool(key))
         messages.success(request, "Сохранено. Настройки применяются к новым конкурсам и песочнице. Модель начатых конкурсов не меняется.")
         return redirect("ai_settings")
-    return render(request, "trainer/ai_settings.html", {"form": form, "key_present": profile_has_key(profile)})
+    return render(request, "trainer/ai_settings.html", {"nav": "ai", "form": form, "key_present": profile_has_key(profile)})

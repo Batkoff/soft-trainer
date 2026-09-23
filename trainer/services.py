@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils import timezone
 from .models import Assignment, Attempt, AuditEvent, Contest, Exercise, Evaluation, default_rubric, demo_rubric
 from .evaluation_profiles import profile_for_rubric, profile_has_key
-from .people import can_review
+from .people import can_review, is_manager
 
 MAX_ANSWER_LENGTH = 6000
 
@@ -101,7 +101,7 @@ def finish_attempt(attempt_id, user=None, answer: str | None = None, expired: bo
 
 @transaction.atomic
 def start_sandbox(user, exercise: Exercise, scenario: str, answer: str | None = None) -> Attempt:
-    if not user.is_staff:
+    if not is_manager(user):
         raise PermissionDenied
     if scenario not in Attempt.Scenario.values:
         raise ValidationError("Неизвестный тестовый сценарий.")
@@ -139,6 +139,8 @@ def retry_attempt(user, attempt_id) -> Attempt:
     if not can_review(user):
         raise PermissionDenied
     attempt = lock_attempt_with_contest(attempt_id)
+    if not can_review(user, attempt):
+        raise PermissionDenied
     if attempt.contest_id and attempt.contest.status == Contest.Status.FINISHED:
         raise ValidationError("Итоги конкурса уже зафиксированы.")
     if attempt.status != Attempt.Status.REVIEW:
@@ -160,6 +162,8 @@ def review_attempt(user, attempt_id, score=None, hard_verdict="passed", reason="
     if not can_review(user):
         raise PermissionDenied
     attempt = lock_attempt_with_contest(attempt_id)
+    if not can_review(user, attempt):
+        raise PermissionDenied
     if attempt.contest_id:
         contest = attempt.contest
         if contest.status == Contest.Status.FINISHED:

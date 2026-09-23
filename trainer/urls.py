@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, team_views
 from .ai_views import ai_settings
 
 urlpatterns = [
@@ -17,6 +17,7 @@ urlpatterns = [
     path("profile/", views.profile, name="profile"),
     path("guide/", views.guide, name="guide"),
     path("updates/", views.updates, name="updates"),
-    path("analytics/", views.analytics, name="analytics"),
+    path("analytics/", team_views.analytics, name="analytics"),
+    path("team/", team_views.team, name="team"),
     path("health/", views.health, name="health"),
 ]
