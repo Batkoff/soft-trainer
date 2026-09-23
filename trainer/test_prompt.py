@@ -24,6 +24,8 @@ class PromptTests(TestCase):
         self.assertEqual(after["prompt_version"], "soft-v3")
         legacy = {**before, "prompt_version": "soft-v1"}
         self.assertEqual(LiveEvaluator(legacy).system_prompt, LEGACY_SYSTEM_PROMPT)
+        old_snapshot = {**before, "prompt_version": "soft-v2", "prompt_text": "Старые сохранённые правила"}
+        self.assertEqual(LiveEvaluator(old_snapshot).system_prompt, "Старые сохранённые правила")
 
 
     def test_existing_snapshot_keeps_older_prompt_version(self):
