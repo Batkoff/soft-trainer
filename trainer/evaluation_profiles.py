@@ -1,7 +1,7 @@
 """Профиль сохраняется в конкурсе и попытке отдельно от секретов подключения."""
 from django.conf import settings
 
-PROMPT_VERSION = "soft-v2"
+PROMPT_VERSION = "soft-v3"
 FREE_OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
 
 def current_profile():
@@ -13,6 +13,7 @@ def current_profile():
         from .evaluation_prompt import SYSTEM_PROMPT
         saved_prompt = EvaluationPrompt.objects.filter(pk=1).first()
         text = saved_prompt.text if saved_prompt else SYSTEM_PROMPT
+        profile["prompt_version"] = f"soft-v{saved_prompt.version}" if saved_prompt else PROMPT_VERSION
         profile["prompt_text"] = text
         profile["prompt_hash"] = sha256(text.encode("utf-8")).hexdigest()
         from .ai_configuration import configuration
