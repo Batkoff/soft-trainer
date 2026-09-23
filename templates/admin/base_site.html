@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'theme.css' %}?v={{ app_version }}">
   <link rel="stylesheet" href="{% static 'admin-theme.css' %}?v={{ app_version }}">
 {% endblock %}
-{% block extrahead %}{{ block.super }}<meta name="author" content="Даниил Батков · @batkoff"><link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">{% endblock %}
+{% block extrahead %}{{ block.super }}<meta name="author" content="Батьков Даниил · @batkoff"><link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">{% endblock %}
 {% block branding %}
   <a href="{% url 'admin:index' %}" class="admin-brand"><span class="admin-brand-mark" aria-hidden="true">т</span><span>Тон<small>управление тренажёром</small></span></a>
 {% endblock %}

@@ -56,7 +56,7 @@ class Command(BaseCommand):
             admin_user.set_password(password)
             admin_user.save()
         employees = []
-        for number, (first, last) in enumerate([("Даниил", "Батков"), ("Вера", "Соколова"), ("Александр", "Морозов"), ("Анна", "Орлова"), ("Максим", "Лебедев")], 1):
+        for number, (first, last) in enumerate([("Даниил", "Батьков"), ("Вера", "Соколова"), ("Александр", "Морозов"), ("Анна", "Орлова"), ("Максим", "Лебедев")], 1):
             user, created = User.objects.get_or_create(username=f"demo{number}", defaults={"first_name": first, "last_name": last})
             if created:
                 user.set_password(password)
