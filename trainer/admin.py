@@ -448,11 +448,15 @@ from .models import EvaluationPrompt
 @admin.register(EvaluationPrompt)
 class EvaluationPromptAdmin(AuditAdmin):
     fieldsets = (("Правила оценки", {
-        "fields": ("text", "updated_at"),
-        "description": "Изменения действуют для новых конкурсов и новых попыток песочницы. Активные конкурсы и повторы проверки используют сохранённую копию. Не вставляйте API-ключи: промпт передаётся модели и сохраняется в журнале запросов.",
+        "fields": ("version", "text", "updated_at"),
+        "description": "Изменения действуют для новых конкурсов и новых попыток песочницы. Активные конкурсы и повторы проверки используют сохранённую копию. При изменении текста версия повышается автоматически. Не вставляйте API-ключи: промпт передаётся модели и сохраняется в журнале запросов.",
     }),)
-    readonly_fields = ("updated_at",)
-    list_display = ("__str__", "updated_at")
+    readonly_fields = ("version", "updated_at")
+    list_display = ("__str__", "version_label", "updated_at")
+
+    @admin.display(description="Версия", ordering="version")
+    def version_label(self, obj):
+        return f"soft-v{obj.version}"
 
     def has_module_permission(self, request):
         return request.user.is_superuser
@@ -468,5 +472,8 @@ class EvaluationPromptAdmin(AuditAdmin):
 
     def save_model(self, request, obj, form, change):
         obj.pk = 1
+        if change and "text" in form.changed_data:
+            previous = EvaluationPrompt.objects.filter(pk=1).only("version").first()
+            obj.version = (previous.version if previous else obj.version) + 1
         super().save_model(request, obj, form, change)
-        messages.info(request, "Промпт сохранён. Новые конкурсы и попытки песочницы получат эти правила. Действующие конкурсы сохраняют прежний промпт.")
+        messages.info(request, f"Промпт сохранён как soft-v{obj.version}. Новые конкурсы и попытки песочницы получат эти правила. Действующие конкурсы сохраняют прежний промпт.")
