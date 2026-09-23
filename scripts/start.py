@@ -75,30 +75,41 @@ def show_failure_logs():
         print("Не удалось получить журнал автоматически: docker compose logs --tail=60 init", flush=True)
 
 
-def ensure_docker():
+def ensure_docker(wait_seconds=None):
+    """Проверяет ответ сервера Docker; сохраняет причину отказа для диагностики."""
     subprocess.run(["docker", "compose", "version"], check=True, timeout=20)
+    wait_seconds = (120 if os.name == "nt" else 30) if wait_seconds is None else wait_seconds
+    last_error = "Сервер Docker не сообщил версию."
 
     def ready():
+        nonlocal last_error
         try:
-            return subprocess.run(["docker", "info"], timeout=10,
-                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+            probe = subprocess.run(["docker", "version", "--format", "{{.Server.Version}}"],
+                                   timeout=10, capture_output=True, text=True,
+                                   encoding="utf-8", errors="replace")
+            if probe.returncode == 0 and probe.stdout.strip():
+                return True
+            last_error = redact((probe.stderr or probe.stdout).strip()) or "Сервер Docker не сообщил версию."
         except subprocess.TimeoutExpired:
-            return False
+            last_error = "Команда docker version не получила ответ за 10 секунд."
+        return False
 
     if ready():
         return
     if os.name == "nt":
         desktop = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Docker/Docker/Docker Desktop.exe"
         if desktop.exists():
-            print("Открываю Docker Desktop. Ожидаю запуск движка (до двух минут)…", flush=True)
+            print("Открываю Docker Desktop…", flush=True)
             subprocess.Popen([str(desktop)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            deadline = time.monotonic() + 120
-            while time.monotonic() < deadline:
-                if ready():
-                    return
-                time.sleep(2)
-    raise RuntimeError("Docker Engine недоступен. Проверьте Docker Desktop и режим Linux containers. "
-                       "Конкретная ошибка: docker info")
+    print(f"Ожидаю Docker Engine (до {wait_seconds} секунд)…", flush=True)
+    deadline = time.monotonic() + wait_seconds
+    while time.monotonic() < deadline:
+        time.sleep(min(2, max(0, deadline - time.monotonic())))
+        if ready():
+            return
+    hint = ("Откройте Docker Desktop и выберите Linux containers." if os.name == "nt"
+            else "Проверьте службу Docker, доступ к её сокету и выбранный Docker context.")
+    raise RuntimeError("Docker Engine недоступен. " + hint + "\nПричина: " + last_error[-4000:])
 
 
 def verify_admin_access(settings, *, reset=False):
@@ -136,10 +147,12 @@ def main():
     args = parser.parse_args()
     if not shutil.which("docker"):
         parser.exit(1, "Docker не найден. Установите и откройте Docker Desktop. См. docs/GETTING_STARTED.md\n")
+    engine_ready = False
     try:
-        ensure_docker()
         print("[1/4] Проверяю настройки и сохраняю существующие секреты…", flush=True)
         settings = prepare(host=args.host, port=args.port)
+        ensure_docker()
+        engine_ready = True
         # Полный compose config раскрывает секреты, используем только проверку.
         compose("config", "--quiet", check=True)
         print("[2/4] Собираю приложение…", flush=True)
@@ -149,14 +162,16 @@ def main():
         compose("up", "--wait", "--wait-timeout", "180", check=True)
         verify_admin_access(settings, reset=args.reset_admin)
     except RuntimeError as error:
-        show_failure_logs()
+        if engine_ready:
+            show_failure_logs()
         parser.exit(1, f"{error}\n")
     except subprocess.TimeoutExpired:
         parser.exit(1, "Docker не ответил вовремя. Данные сохранены. Повторите запуск после проверки docker info.\n")
     except (ValueError, OSError):
         parser.exit(1, "Проверьте .env и доступ на запись в папку проекта. HTTP_PORT: число от 1 до 65535.\n")
     except subprocess.CalledProcessError:
-        show_failure_logs()
+        if engine_ready:
+            show_failure_logs()
         parser.exit(1, "Запуск не завершён. Причина выше. Проверка: docker compose ps -a\n"
                        "Логи: docker compose logs --tail=100 init web worker proxy\n"
                        "Решения: docs/GETTING_STARTED.md#если-не-запустилось\n")

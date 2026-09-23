@@ -440,3 +440,33 @@ class CalibrationRunAdmin(ReadOnlyAdmin):
 
 # Регистрация простой карточки сотрудника после стандартного django.contrib.auth.
 from . import user_admin  # noqa: E402,F401
+
+
+from .models import EvaluationPrompt
+
+
+@admin.register(EvaluationPrompt)
+class EvaluationPromptAdmin(AuditAdmin):
+    fieldsets = (("Правила оценки", {
+        "fields": ("text", "updated_at"),
+        "description": "Изменения действуют для новых конкурсов и новых попыток песочницы. Активные конкурсы и повторы проверки используют сохранённую копию. Не вставляйте API-ключи: промпт передаётся модели и сохраняется в журнале запросов.",
+    }),)
+    readonly_fields = ("updated_at",)
+    list_display = ("__str__", "updated_at")
+
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser and not EvaluationPrompt.objects.exists()
+
+    def save_model(self, request, obj, form, change):
+        obj.pk = 1
+        super().save_model(request, obj, form, change)
+        messages.info(request, "Промпт сохранён. Новые конкурсы и попытки песочницы получат эти правила. Действующие конкурсы сохраняют прежний промпт.")

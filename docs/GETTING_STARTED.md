@@ -102,7 +102,7 @@ python scripts/start.py
 | Сообщение | Что сделать |
 | --- | --- |
 | Docker не найден | Установить Docker Desktop и открыть новый терминал |
-| Docker Engine недоступен | Дождаться запуска Desktop; выполнить `docker info` |
+| Docker Engine недоступен | Дождаться запуска Desktop; выполнить `docker version`. На Linux проверить службу Docker и доступ к сокету |
 | Порт занят | Запустить `python scripts/start.py --port 8081` |
 | `init` завершился с ошибкой | Посмотреть журнал ниже; база остаётся на месте |
 | `password authentication failed` у PostgreSQL | Повторить `python scripts/start.py`; при изменённых вручную правилах доступа потребуется исходный пароль базы |

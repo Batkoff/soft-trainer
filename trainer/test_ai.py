@@ -7,6 +7,7 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from .evaluation import EvaluationInput, DemoEvaluator, PermanentEvaluationError, TemporaryEvaluationError, calculate_score, get_evaluator
+from .evaluation_prompt import SYSTEM_PROMPT
 from .evaluation_http import LiveEvaluator, checked_quote, fact_items, normalize_result, post_json
 from .evaluation_profiles import current_profile, FREE_OPENROUTER_MODEL
 from .models import Attempt, Evaluation, EvaluationTrace, Exercise, SKILLS, default_rubric, demo_rubric
@@ -54,7 +55,7 @@ class APIContractTests(SimpleTestCase):
         trace = result["_trace"]
         self.assertEqual(trace["request_payload"], body)
         self.assertEqual(trace["response_payload"], api_response())
-        self.assertIn("Ты — оценщик учебных ответов", body["messages"][0]["content"])
+        self.assertEqual(SYSTEM_PROMPT, body["messages"][0]["content"])
         self.assertEqual(trace["input_tokens"], 1400)
 
     def test_hard_violation_gives_zero_and_preserves_soft(self):
@@ -206,7 +207,7 @@ class AIQueueTests(TestCase):
         self.assertEqual(attempt.evaluation.payload["skills"]["clarity"], 80)
         trace = EvaluationTrace.objects.get(attempt=attempt)
         self.assertEqual(trace.status, "review")
-        self.assertIn("Ты — оценщик учебных ответов", trace.request_payload["messages"][0]["content"])
+        self.assertEqual(SYSTEM_PROMPT, trace.request_payload["messages"][0]["content"])
         self.assertEqual(trace.response_payload["usage"]["completion_tokens"], 600)
         with self.assertRaises(ValidationError):
             retry_attempt(self.admin, attempt.pk)

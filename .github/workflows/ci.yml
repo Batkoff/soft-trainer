@@ -4,16 +4,25 @@ permissions:
   contents: read
 jobs:
   docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Check setup scripts
         run: python -m unittest discover -s scripts -p 'test_*.py'
+      - name: Prepare local settings
+        id: config
+        run: python scripts/prepare_demo.py
+      - name: Start and check Docker Engine
+        id: docker
+        run: |
+          sudo systemctl start docker
+          python -c "from scripts.start import ensure_docker; ensure_docker()"
       - name: Build and start a clean installation
+        id: start
         run: python scripts/start.py
       - name: Check HTTP
         run: |
@@ -38,8 +47,11 @@ jobs:
           docker compose exec -T web python manage.py makemigrations --check --dry-run
           docker compose exec -T web python manage.py test trainer
       - name: Container logs
-        if: failure()
+        if: failure() && steps.config.outcome == 'success' && steps.docker.outcome == 'success'
         run: docker compose logs --no-color --tail=100 init web worker proxy
+      - name: Docker service diagnostics
+        if: failure() && steps.docker.outcome == 'failure'
+        run: sudo journalctl --unit docker --no-pager --lines=80
       - name: Stop containers
-        if: always()
+        if: always() && steps.config.outcome == 'success' && steps.docker.outcome == 'success'
         run: docker compose down

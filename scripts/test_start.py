@@ -87,5 +87,41 @@ class AdminAccessTests(unittest.TestCase):
             self.assertEqual(command.call_args.kwargs["input"], password)
 
 
+class DockerReadinessTests(unittest.TestCase):
+    def test_success_checks_server_without_docker_info(self):
+        with patch.object(start.subprocess, "run", side_effect=[result(), result()]) as run:
+            start.ensure_docker(wait_seconds=0)
+        self.assertEqual(run.call_args.args[0], ["docker", "version", "--format", "{{.Server.Version}}"])
+
+    def test_initial_timeout_is_retried(self):
+        with patch.object(start.subprocess, "run", side_effect=[result(), subprocess.TimeoutExpired("docker", 10), result()]) as run, patch.object(start.time, "sleep"), contextlib.redirect_stdout(io.StringIO()):
+            start.ensure_docker(wait_seconds=30)
+        self.assertEqual(run.call_count, 3)
+
+    def test_daemon_error_is_reported_and_secret_is_redacted(self):
+        with patch.object(start.subprocess, "run", side_effect=[result(), result(1, "Cannot connect: unit-secret")]), patch.object(start, "read_env", return_value={"POSTGRES_PASSWORD": "unit-secret"}), contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(RuntimeError) as raised:
+                start.ensure_docker(wait_seconds=0)
+        self.assertIn("Cannot connect", str(raised.exception))
+        self.assertNotIn("unit-secret", str(raised.exception))
+
+    def test_empty_server_version_is_not_a_success(self):
+        empty = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        with patch.object(start.subprocess, "run", side_effect=[result(), empty]), contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(RuntimeError):
+                start.ensure_docker(wait_seconds=0)
+
+    def test_settings_are_prepared_before_probe_and_no_compose_logs_without_engine(self):
+        from unittest.mock import Mock
+        events = Mock()
+        with patch.object(start.sys, "argv", ["start.py"]), patch.object(start.shutil, "which", return_value="docker"), patch.object(start, "prepare", return_value={}) as prepare, patch.object(start, "ensure_docker", side_effect=RuntimeError("daemon unavailable")) as docker, patch.object(start, "show_failure_logs") as logs, contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            events.attach_mock(prepare, "prepare")
+            events.attach_mock(docker, "docker")
+            with self.assertRaises(SystemExit):
+                start.main()
+        self.assertEqual([call[0] for call in events.mock_calls], ["prepare", "docker"])
+        logs.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

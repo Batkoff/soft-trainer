@@ -1,13 +1,20 @@
 """Профиль сохраняется в конкурсе и попытке отдельно от секретов подключения."""
 from django.conf import settings
 
-PROMPT_VERSION = "soft-v1"
+PROMPT_VERSION = "soft-v2"
 FREE_OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
 
 def current_profile():
     profile = {"provider": settings.EVALUATOR_BACKEND, "model": settings.EVALUATOR_MODEL,
                "prompt_version": PROMPT_VERSION}
     if not getattr(settings, "ALLOW_TEST_EVALUATOR", False):
+        from hashlib import sha256
+        from .models import EvaluationPrompt
+        from .evaluation_prompt import SYSTEM_PROMPT
+        saved_prompt = EvaluationPrompt.objects.filter(pk=1).first()
+        text = saved_prompt.text if saved_prompt else SYSTEM_PROMPT
+        profile["prompt_text"] = text
+        profile["prompt_hash"] = sha256(text.encode("utf-8")).hexdigest()
         from .ai_configuration import configuration
         config = configuration()
         if config:

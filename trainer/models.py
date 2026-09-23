@@ -329,3 +329,18 @@ class AIConfiguration(models.Model):
     openai_secret = models.TextField(blank=True)
     openrouter_secret = models.TextField(blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class EvaluationPrompt(models.Model):
+    """Одна текущая настройка; в профиле конкурса хранится неизменяемая копия."""
+    from .evaluation_prompt import SYSTEM_PROMPT
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    text = models.TextField("Текст промпта", default=SYSTEM_PROMPT, max_length=20000)
+    updated_at = models.DateTimeField("Изменён", auto_now=True)
+
+    class Meta:
+        verbose_name = "Промпт оценки"
+        verbose_name_plural = "Промпт оценки"
+
+    def __str__(self):
+        return "Правила оценки новых конкурсов и песочницы"

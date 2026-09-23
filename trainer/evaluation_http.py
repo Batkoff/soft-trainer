@@ -9,7 +9,7 @@ from urllib import error, request
 from django.conf import settings
 from .evaluation import PermanentEvaluationError, TemporaryEvaluationError
 from .evaluation_profiles import PROMPT_VERSION
-from .evaluation_prompt import SYSTEM_PROMPT
+from .evaluation_prompt import SYSTEM_PROMPT, LEGACY_SYSTEM_PROMPT
 from .models import SKILLS
 
 logger = logging.getLogger("trainer.api")
@@ -201,8 +201,12 @@ class LiveEvaluator:
         self.last_trace = {"provider": profile.get("provider", ""), "model": profile.get("model", ""),
                            "prompt_version": profile.get("prompt_version", ""), "request_payload": {},
                            "response_payload": {}}
-        if profile.get("prompt_version") != PROMPT_VERSION:
+        if profile.get("prompt_version") not in {"soft-v1", PROMPT_VERSION}:
             raise PermanentEvaluationError("Версия промпта этого конкурса недоступна. Нужен администратор.")
+        self.system_prompt = (LEGACY_SYSTEM_PROMPT if profile.get("prompt_version") == "soft-v1"
+                              else profile.get("prompt_text", SYSTEM_PROMPT))
+        if not isinstance(self.system_prompt, str) or not self.system_prompt.strip():
+            raise PermanentEvaluationError("Промпт оценки пуст или повреждён.")
         if not isinstance(profile.get("model"), str) or not profile["model"].strip():
             raise PermanentEvaluationError("В профиле не указана модель.")
         if "reasoning_enabled" in profile and type(profile["reasoning_enabled"]) is not bool:
@@ -229,7 +233,7 @@ class LiveEvaluator:
         task = {name: data.assignment.get(name, "") for name in
                 ("customer_message", "hard_answer", "allowed_actions", "forbidden_promises")}
         task.update(required_facts=facts, employee_answer=data.answer)
-        body = {"model": model, "temperature": 0, "messages": [{"role": "system", "content": SYSTEM_PROMPT},
+        body = {"model": model, "temperature": 0, "messages": [{"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": json.dumps(task, ensure_ascii=False)}],
                 "response_format": {"type": "json_schema", "json_schema": {
                     "name": "support_evaluation", "strict": True, "schema": response_schema(facts)}}}

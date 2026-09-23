@@ -37,5 +37,6 @@ node_modules/
 
 # Downloaded release files and local startup reports
 *.patch
+*.bundle
 startup-log.txt
 build-log.txt
