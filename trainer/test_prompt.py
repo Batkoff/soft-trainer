@@ -1,7 +1,7 @@
 """Редактирование правил не меняет уже выданные задания и старые конкурсы."""
 from hashlib import sha256
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from .evaluation_http import LiveEvaluator
 from .evaluation_profiles import current_profile
 from .evaluation_prompt import LEGACY_SYSTEM_PROMPT, SYSTEM_PROMPT
@@ -57,3 +57,22 @@ class PromptTests(TestCase):
         self.assertEqual(current_profile()["prompt_version"], "soft-v4")
         self.assertTrue(AuditEvent.objects.filter(actor=admin, action="admin_updated").exists())
         self.assertEqual(self.client.get("/admin/trainer/evaluationprompt/add/").status_code, 403)
+
+
+class PromptSchemaTests(SimpleTestCase):
+    def test_prompt_edit_does_not_require_schema_migration(self):
+        from unittest.mock import patch
+        from django.apps import apps
+        from django.db.migrations.autodetector import MigrationAutodetector
+        from django.db.migrations.loader import MigrationLoader
+        from django.db.migrations.state import ProjectState
+        from .evaluation_prompt import default_evaluation_prompt
+
+        loader = MigrationLoader(None)
+        with patch("trainer.evaluation_prompt.SYSTEM_PROMPT", "Обновлённые правила"):
+            self.assertEqual(EvaluationPrompt().text, "Обновлённые правила")
+            self.assertIs(EvaluationPrompt._meta.get_field("text").default, default_evaluation_prompt)
+            changes = MigrationAutodetector(
+                loader.project_state(), ProjectState.from_apps(apps)
+            ).changes(graph=loader.graph)
+        self.assertNotIn("trainer", changes)
