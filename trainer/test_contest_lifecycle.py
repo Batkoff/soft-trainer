@@ -105,9 +105,12 @@ class ContestLifecycleTests(TestCase):
         self.assertContains(self.client.get(f"/?contest={future.pk}"), "Задания откроются автоматически")
         self.assertEqual(self.client.get("/leaderboard/").context["contest"].pk, future.pk)
         self.assertNotContains(self.client.get(f"/?contest={future.pk}"), "Таймер запускается")
-        self.client.get(f"/?contest={self.contest.pk}")  # Запоминаем текущий конкурс.
+        selected = self.client.get(f"/?contest={self.contest.pk}")  # Запоминаем текущий конкурс.
+        self.assertContains(selected, f'data-contest-id="{self.contest.pk}"')
         close_contest_early(self.admin, self.contest.pk)
-        self.assertEqual(self.client.get("/").context["contest"].pk, future.pk)
+        switched = self.client.get("/")
+        self.assertEqual(switched.context["contest"].pk, future.pk)
+        self.assertContains(switched, f'data-contest-id="{future.pk}"')
         archived = self.client.get(f"/leaderboard/?contest={self.contest.pk}")
         self.assertContains(archived, "эта таблица больше не меняется")
         self.assertTrue(archived.context["archive_mode"])
