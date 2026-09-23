@@ -201,10 +201,13 @@ class LiveEvaluator:
         self.last_trace = {"provider": profile.get("provider", ""), "model": profile.get("model", ""),
                            "prompt_version": profile.get("prompt_version", ""), "request_payload": {},
                            "response_payload": {}}
-        if profile.get("prompt_version") not in {"soft-v1", PROMPT_VERSION}:
+        version = profile.get("prompt_version")
+        if version == "soft-v1":
+            self.system_prompt = LEGACY_SYSTEM_PROMPT
+        elif isinstance(version, str) and version.startswith("soft-v") and version[6:].isdigit() and int(version[6:]) >= 2:
+            self.system_prompt = profile.get("prompt_text", SYSTEM_PROMPT if version == PROMPT_VERSION else "")
+        else:
             raise PermanentEvaluationError("Версия промпта этого конкурса недоступна. Нужен администратор.")
-        self.system_prompt = (LEGACY_SYSTEM_PROMPT if profile.get("prompt_version") == "soft-v1"
-                              else profile.get("prompt_text", SYSTEM_PROMPT))
         if not isinstance(self.system_prompt, str) or not self.system_prompt.strip():
             raise PermanentEvaluationError("Промпт оценки пуст или повреждён.")
         if not isinstance(profile.get("model"), str) or not profile["model"].strip():
