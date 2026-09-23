@@ -11,6 +11,30 @@ from .models import AuditEvent, EvaluationPrompt
 @override_settings(ALLOW_TEST_EVALUATOR=False, EVALUATOR_BACKEND="openrouter",
                    EVALUATOR_MODEL="test-model")
 class PromptTests(TestCase):
+    @override_settings(DEBUG=False)
+    def test_browser_form_saves_long_prompt_and_validates_length(self):
+        from urllib.parse import urlencode
+        admin = get_user_model().objects.create_superuser("prompt-owner", password="test-only")
+        self.client.force_login(admin)
+        EvaluationPrompt.objects.update_or_create(pk=1, defaults={"text": SYSTEM_PROMPT, "version": 3})
+        url = "/admin/trainer/evaluationprompt/1/change/"
+        # Обычная HTML-форма кодирует кириллицу/эмодзи; размер запроса больше текста.
+        text = "Присоединение 🙂 " * 1200
+        body = urlencode({"text": text, "_save": "1"})
+        self.assertGreater(len(body.encode()), 64 * 1024)
+        response = self.client.post(url, body, content_type="application/x-www-form-urlencoded")
+        self.assertEqual(response.status_code, 302)
+        prompt = EvaluationPrompt.objects.get(pk=1)
+        self.assertEqual(prompt.text, text.strip())
+        self.assertEqual(prompt.version, 4)
+        response = self.client.post(url, urlencode({"text": "я" * 20001, "_save": "1"}),
+                                    content_type="application/x-www-form-urlencoded")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text", response.context["adminform"].form.errors)
+        prompt.refresh_from_db()
+        self.assertEqual(prompt.text, text.strip())
+        self.assertEqual(prompt.version, 4)
+
     def test_snapshot_survives_edit_and_old_version_is_available(self):
         EvaluationPrompt.objects.update_or_create(pk=1, defaults={"text": "Первый промпт", "version": 3})
         before = current_profile()

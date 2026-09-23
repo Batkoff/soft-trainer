@@ -69,7 +69,9 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
-DATA_UPLOAD_MAX_MEMORY_SIZE = 64 * 1024
+# HTML-форма кодирует кириллицу и эмодзи в процентах: 20 000 символов
+# промпта могут занимать до 240 КБ в запросе. Лимиты полей остаются в формах.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 256 * 1024
 EVALUATOR_BACKEND = os.getenv("EVALUATOR_BACKEND", "demo").strip().lower()
 if EVALUATOR_BACKEND not in ("demo", "openai", "openrouter"):
     raise ImproperlyConfigured("EVALUATOR_BACKEND: demo, openai или openrouter.")
