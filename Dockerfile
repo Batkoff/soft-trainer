@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 LABEL org.opencontainers.image.title="Тон" \
       org.opencontainers.image.description="Найди свой. Тренажёр общения для поддержки." \
-      org.opencontainers.image.authors="@batkoff" \
+      org.opencontainers.image.authors="Батьков Даниил · @batkoff" \
       org.opencontainers.image.source="https://github.com/Batkoff/soft-trainer"
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
