@@ -1,4 +1,4 @@
-<section class="contest-navigation" aria-label="Выбор конкурса">
+<section class="contest-navigation" aria-label="Выбор конкурса" data-contest-navigation data-contest-id="{{ contest.pk|default:'' }}" data-archive-mode="{% if archive_mode %}true{% else %}false{% endif %}">
   <div class="contest-nav-heading"><span class="eyebrow">{% if archive_mode %}АРХИВ КОНКУРСОВ{% else %}КОНКУРСЫ{% endif %}</span>
     {% if archive_mode %}<a href="{{ request.path }}">Текущие конкурсы →</a>
     {% elif archived_contests %}<a href="{% url 'leaderboard' %}?archive=1">Завершённые конкурсы ↗</a>{% endif %}
