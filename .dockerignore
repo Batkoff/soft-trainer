@@ -1,5 +1,7 @@
 # Only runtime source belongs in the image. Local secrets never enter the build context.
 *
+!LICENSE
+!AUTHORS.md
 !requirements.txt
 !manage.py
 !config/
