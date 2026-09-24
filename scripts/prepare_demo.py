@@ -70,13 +70,24 @@ def prepare(root=ROOT, host=None, port=None):
     if host or port is not None:
         hosts = [item for item in settings["ALLOWED_HOSTS"].split(",") if item]
         origins = [item for item in settings["CSRF_TRUSTED_ORIGINS"].split(",") if item]
+        public_domain = False
         if host:
             hosts.append(host)
             updates["HTTP_BIND"] = "0.0.0.0"
-        # При смене порта сохраняем работоспособность ранее добавленного IP.
+            try:
+                ipaddress.ip_address(host.strip("[]"))
+            except ValueError:
+                public_domain = True
+                # Доменный запуск сразу переводим на штатный HTTPS Caddy.
+                updates["SITE_ADDRESS"] = host
+                updates["HTTPS_PORT"] = "443"
+                updates["SECURE_COOKIES"] = "1"
+                origins.append(f"https://{host}")
+        # HTTP оставляем доверенным для локального/IP-доступа и первичной диагностики.
         for name in hosts:
             if name and name != "*" and not name.startswith("."):
-                origins.append(f"http://{name}:{selected_port}")
+                default_port = 80 if selected_port == 80 else selected_port
+                origins.append(f"http://{name}" if default_port == 80 else f"http://{name}:{default_port}")
         updates["ALLOWED_HOSTS"] = ",".join(dict.fromkeys(hosts))
         updates["CSRF_TRUSTED_ORIGINS"] = ",".join(dict.fromkeys(origins))
     if updates:
