@@ -41,6 +41,8 @@ def api_key(provider):
 
 def proxy_settings():
     """Текущая инфраструктурная настройка применяется к новым HTTP-запросам сразу."""
+    if getattr(settings, "ALLOW_TEST_EVALUATOR", False):
+        return {"enabled": False, "url": "", "username": "", "password": ""}
     config = configuration()
     if not config or not config.proxy_enabled:
         return {"enabled": False, "url": "", "username": "", "password": ""}
