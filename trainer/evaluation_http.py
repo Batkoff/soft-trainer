@@ -8,6 +8,7 @@ from http.client import HTTPException
 from urllib import error, request
 from urllib.parse import urlsplit
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from .evaluation import PermanentEvaluationError, TemporaryEvaluationError
 from .evaluation_profiles import PROMPT_VERSION
 from .evaluation_prompt import SYSTEM_PROMPT, LEGACY_SYSTEM_PROMPT
