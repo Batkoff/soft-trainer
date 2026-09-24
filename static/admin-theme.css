@@ -1046,3 +1046,5 @@ a.admin-primary {color:var(--ton-on-accent);}
   gap:6px;
   white-space:nowrap
 }
+
+.ton-admin .field-reports:not(:has(select)) {display: none;}

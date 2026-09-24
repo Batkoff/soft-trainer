@@ -1,7 +1,7 @@
 """Профиль сохраняется в конкурсе и попытке отдельно от секретов подключения."""
 from django.conf import settings
 
-PROMPT_VERSION = "soft-v3"
+PROMPT_VERSION = "soft-v4"
 FREE_OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
 
 def current_profile():

@@ -11,7 +11,7 @@
     <thead><tr><th>Место</th><th>Сотрудник</th><th>Баллы</th><th>Средняя</th><th>Заданий</th></tr></thead>
     <tbody>{% for row in rows %}<tr {% if row.user_id == user.pk %}class="my-row"{% endif %}>
       <td><span class="rank {% if row.place <= 3 %}top{% endif %}">{{ row.place }}</span></td>
-      <td><strong>{{ row.name }}</strong>{% if row.user_id == user.pk %}<span class="you-tag">вы</span>{% endif %}</td>
+      <td><div class="person-with-avatar">{% include "includes/avatar.html" with person_id=row.user_id photo_version=row.avatar_version name=row.name %}<strong>{{ row.name }}</strong>{% if row.user_id == user.pk %}<span class="you-tag">вы</span>{% endif %}</div></td>
       <td><strong>{{ row.points }}</strong></td><td>{{ row.average }}</td><td>{{ row.completed }}</td>
     </tr>{% empty %}<tr><td colspan="5">Участники ещё не добавлены.</td></tr>{% endfor %}</tbody>
   </table></div><p class="small muted table-note">При равенстве баллов — общее место.{% if not archive_mode %} Проверяемые ответы появятся после оценки.{% endif %}</p></section>

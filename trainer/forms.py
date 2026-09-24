@@ -32,10 +32,38 @@ class ReviewForm(forms.Form):
         return cleaned
 
 class ProfileForm(forms.ModelForm):
+    photo = forms.FileField(label="Фото", required=False,
+        widget=forms.FileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
+        help_text="JPG, PNG или WebP, до 5 МБ. Фото будет обрезано до квадрата.")
+    remove_photo = forms.BooleanField(label="Удалить фото", required=False)
+
     class Meta:
         model = UserProfile
-        fields = ["display_name", "avatar"]
-        widgets = {"avatar": forms.RadioSelect}
+        fields = ["display_name"]
+
+    def clean_photo(self):
+        upload = self.cleaned_data.get("photo")
+        if not upload:
+            return None
+        from .avatars import normalize_photo
+        return normalize_photo(upload)
+
+    def clean(self):
+        data = super().clean()
+        if data.get("photo") and data.get("remove_photo"):
+            self.add_error("remove_photo", "Выберите загрузку нового фото или удаление текущего.")
+        return data
+
+    def save(self, commit=True):
+        from hashlib import sha256
+        profile = super().save(commit=False)
+        photo = self.cleaned_data.get("photo")
+        if photo is not None or self.cleaned_data.get("remove_photo"):
+            profile.avatar_data = photo or b""
+            profile.avatar_version = sha256(photo).hexdigest() if photo else ""
+        if commit:
+            profile.save()
+        return profile
 
 class AIConfigurationForm(forms.Form):
     provider = forms.ChoiceField(label="Провайдер", choices=[("openrouter", "OpenRouter"), ("openai", "OpenAI")])

@@ -216,8 +216,13 @@ def status(request, attempt_id):
 @login_required
 def leaderboard(request):
     contest = selected_contest(request)
+    # Актуальное фото не меняет зафиксированные баллы и имена архивного конкурса.
+    rows = [dict(row) for row in standings(contest)] if contest else []
+    photos = dict(UserProfile.objects.filter(user_id__in=[r["user_id"] for r in rows]).values_list("user_id", "avatar_version"))
+    for row in rows:
+        row["avatar_version"] = photos.get(row["user_id"], "")
     return render(request, "trainer/leaderboard.html", {"contest": contest, **contest_navigation(request, contest),
-        "rows": standings(contest) if contest else [], "nav": "leaderboard",
+        "rows": rows, "nav": "leaderboard",
         **({"grading_is_demo": profile_for_rubric(contest.rubric).get("provider") == "demo"} if contest else {})})
 
 @staff_required
@@ -256,7 +261,7 @@ def review(request, attempt_id):
 @login_required
 def profile(request):
     item = getattr(request.user, "profile", None) or UserProfile(user=request.user)
-    form = ProfileForm(request.POST or None, instance=item)
+    form = ProfileForm(request.POST or None, request.FILES or None, instance=item)
     if request.method == "POST" and form.is_valid():
         form.save()
         services.audit(request.user, "profile_updated", item, fields=list(form.changed_data))

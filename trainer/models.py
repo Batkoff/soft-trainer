@@ -10,9 +10,7 @@ SKILLS = {"clarity": "Ясность", "tone": "Тон общения", "empathy
           "expectations": "Управление ожиданиями", "initiative": "Инициативность"}
 
 class UserProfile(models.Model):
-    """Аватар из набора не требует хранения файлов и отдельного сервиса картинок."""
-    AVATARS = [("🙂", "🙂 Улыбка"), ("🦊", "🦊 Лиса"), ("🐱", "🐱 Кот"),
-               ("🐼", "🐼 Панда"), ("🚀", "🚀 Ракета"), ("🌿", "🌿 Лист")]
+    """Небольшие нормализованные фото хранятся вместе с профилем и резервной копией БД."""
     class Role(models.TextChoices):
         EMPLOYEE = "employee", "Сотрудник"
         GROUP_LEADER = "group_leader", "Руководитель группы"
@@ -24,7 +22,8 @@ class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     unit_name = models.CharField("Название группы или сектора", max_length=120, blank=True)
     display_name = models.CharField("Отображаемый ник", max_length=60, blank=True)
-    avatar = models.CharField("Аватар", max_length=8, choices=AVATARS, default="🙂")
+    avatar_data = models.BinaryField("Фото", default=bytes, blank=True, editable=False)
+    avatar_version = models.CharField(max_length=64, blank=True, editable=False)
 
 def default_rubric():
     from .evaluation_profiles import current_profile
@@ -348,7 +347,7 @@ class EvaluationPrompt(models.Model):
     """Одна текущая настройка; в профиле конкурса хранится неизменяемая копия."""
     from .evaluation_prompt import default_evaluation_prompt
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
-    version = models.PositiveSmallIntegerField("Версия", default=3, editable=False)
+    version = models.PositiveSmallIntegerField("Версия", default=4, editable=False)
     text = models.TextField("Текст промпта", default=default_evaluation_prompt, max_length=20000)
     updated_at = models.DateTimeField("Изменён", auto_now=True)
 

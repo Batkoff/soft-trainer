@@ -3,3 +3,4 @@ psycopg[binary]==3.3.5
 procrastinate==3.9.0
 gunicorn==23.0.0
 cryptography==46.0.0
+Pillow==12.3.0

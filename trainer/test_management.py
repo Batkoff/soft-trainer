@@ -139,7 +139,7 @@ class ManagementTests(TestCase):
         self.assertEqual(self.user.username, "employee")
         self.assertFalse(self.user.is_superuser)
         self.assertEqual(self.user.profile.display_name, "Новый ник")
-        self.assertEqual(self.user.profile.avatar, "🦊")
+        self.assertEqual(bytes(self.user.profile.avatar_data), b"")
         self.assertFalse(UserProfile.objects.filter(user=self.admin, display_name="Новый ник").exists())
         self.assertContains(self.client.get("/"), "Новый ник")
 

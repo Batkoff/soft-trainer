@@ -1,8 +1,10 @@
 from django.urls import path
 from . import views, team_views
 from .ai_views import ai_settings
+from .avatars import avatar
 
 urlpatterns = [
+    path("avatars/<int:user_id>/", avatar, name="avatar"),
     path("settings/ai/", ai_settings, name="ai_settings"),
     path("", views.home, name="home"),
     path("contests/<int:contest_id>/start/", views.start, name="start"),

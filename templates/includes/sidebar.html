@@ -11,5 +11,5 @@
 {% if user.is_superuser %}<a href="{% url 'ai_settings' %}" class="ton-nav-link {% if nav == 'ai' %}active{% endif %}"><span>✧</span>Нейросеть</a>
 <a href="{% url 'admin:index' %}" class="ton-nav-link {% if request.resolver_match.app_name == 'admin' %}active{% endif %}"><span>⚙</span>Админка</a>{% endif %}
 <a href="{% url 'guide' %}" class="ton-nav-link {% if nav == 'guide' %}active{% endif %}"><span>?</span>Как пользоваться</a>{% endif %}</nav>
-<div class="ton-sidebar-bottom"><a href="{% url 'updates' %}" class="ton-version">MLP · {{ app_version }}</a><div class="ton-user"><span class="ton-avatar">{{ current_avatar }}</span><div><strong>{{ current_display_name }}</strong><small>{{ current_role }}</small></div></div><form action="{% url 'logout' %}" method="post">{% csrf_token %}<button type="submit" class="ton-logout">Выйти из аккаунта</button></form></div>
+<div class="ton-sidebar-bottom"><a href="{% url 'updates' %}" class="ton-version">MLP · {{ app_version }}</a><div class="ton-user">{% include "includes/avatar.html" with person_id=user.pk photo_version=current_avatar_version name=current_display_name %}<div><strong>{{ current_display_name }}</strong><small>{{ current_role }}</small></div></div><form action="{% url 'logout' %}" method="post">{% csrf_token %}<button type="submit" class="ton-logout">Выйти из аккаунта</button></form></div>
 </aside>

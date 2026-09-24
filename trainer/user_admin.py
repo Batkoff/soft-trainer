@@ -47,7 +47,7 @@ class RoleFormMixin:
         # две колонки «доступные ↔ выбранные» и корректно отправляет выбранных.
         for name, visible in (("manager", parent_role), ("reports", child_role), ("unit_name", child_role)):
             if not visible:
-                self.fields[name].widget = forms.HiddenInput()
+                self.fields[name].widget = forms.MultipleHiddenInput() if name == "reports" else forms.HiddenInput()
         # Хэш не помогает администратору: оставляем штатную безопасную смену пароля.
         if "password" in self.fields:
             self.fields["password"].help_text = "Пароль нельзя посмотреть. Новый пароль можно задать отдельно."

@@ -177,3 +177,16 @@ class HierarchyTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("manager", response.context["adminform"].form.errors)
         self.assertIsNone(UserProfile.objects.get(user=self.sector).manager_id)
+
+    def test_leaderboard_photos_do_not_change_archived_standings(self):
+        from .reports import standings
+        UserProfile.objects.filter(user=self.employee).update(avatar_version="photo-version")
+        original = standings(self.contest)
+        self.contest.final_standings = original
+        self.contest.status = "finished"
+        self.contest.save()
+        self.client.force_login(self.employee)
+        response = self.client.get(f"/leaderboard/?contest={self.contest.pk}")
+        self.assertContains(response, f"/avatars/{self.employee.pk}/?v=photo-version")
+        self.contest.refresh_from_db()
+        self.assertEqual(self.contest.final_standings, original)
