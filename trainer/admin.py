@@ -232,9 +232,9 @@ class LogAdmin(ReadOnlyAdmin):
         response["Cache-Control"] = "no-store"
         return response
 
-    @admin.display(description="Скачать")
+    @admin.display(description="")
     def download_link(self, obj):
-        return format_html('<a class="button" href="{}">Скачать .txt</a>',
+        return format_html('<a class="admin-download-link" href="{}">TXT ↓</a>',
             reverse(f"admin:trainer_{self.model._meta.model_name}_text", args=[obj.pk]))
 
 @admin.register(Attempt)
@@ -378,10 +378,12 @@ class EvaluationTraceAdmin(LogAdmin):
     def token_summary(self, obj):
         return f"{obj.input_tokens or 0} / {obj.output_tokens or 0}"
 
-    @admin.display(description="Скачать")
+    @admin.display(description="")
     def download_link(self, obj):
-        url = reverse("admin:trainer_evaluationtrace_download", args=[obj.pk])
-        return format_html('{} <a href="{}">JSON ↧</a>', super().download_link(obj), url)
+        txt_url = reverse(f"admin:trainer_{self.model._meta.model_name}_text", args=[obj.pk])
+        json_url = reverse("admin:trainer_evaluationtrace_download", args=[obj.pk])
+        return format_html('<span class="admin-downloads"><a href="{}">TXT ↓</a><a href="{}">JSON ↓</a></span>',
+                           txt_url, json_url)
 
     def get_urls(self):
         custom = [path("<int:object_id>/download/", self.admin_site.admin_view(self.download),
