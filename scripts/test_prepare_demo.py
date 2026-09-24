@@ -52,6 +52,18 @@ class PrepareDemoTests(unittest.TestCase):
         settings = prepare(self.root, port=8082)
         self.assertIn("http://192.168.1.20:8082", settings["CSRF_TRUSTED_ORIGINS"].split(","))
 
+    def test_domain_host_enables_caddy_https_without_resetting_secrets(self):
+        before = prepare(self.root)
+        settings = prepare(self.root, host="ton-practice.ru", port=80)
+        self.assertEqual(settings["SECRET_KEY"], before["SECRET_KEY"])
+        self.assertEqual(settings["HTTP_BIND"], "0.0.0.0")
+        self.assertEqual(settings["SITE_ADDRESS"], "ton-practice.ru")
+        self.assertEqual(settings["HTTPS_PORT"], "443")
+        self.assertEqual(settings["SECURE_COOKIES"], "1")
+        self.assertIn("ton-practice.ru", settings["ALLOWED_HOSTS"].split(","))
+        self.assertIn("https://ton-practice.ru", settings["CSRF_TRUSTED_ORIGINS"].split(","))
+        self.assertIn("http://ton-practice.ru", settings["CSRF_TRUSTED_ORIGINS"].split(","))
+
     def test_invalid_port_does_not_write_settings(self):
         for port in (0, 65536):
             with self.assertRaises(ValueError):
