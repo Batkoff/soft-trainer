@@ -1,19 +1,19 @@
-/* Тон · виноград + лайм. Общие цвета тренажёра и штатной админки. */
+/* Тон · жёлтый и чёрный. Общие цвета тренажёра и штатной админки. */
 :root {
   color-scheme: dark;
-  --ton-bg: #151019;
-  --ton-surface: #251c30;
-  --ton-raised: #30243e;
-  --ton-hover: #392c49;
-  --ton-border: #493953;
-  --ton-text: #f4edf9;
-  --ton-muted: #beb0cb;
-  --ton-accent: #b58af5;
-  --ton-accent-hover: #c6a3fa;
-  --ton-accent-soft: #372748;
-  --ton-on-accent: #21132f;
-  --ton-lime: #d8ef9a;
-  --ton-lime-soft: #303822;
+  --ton-bg: #141414;
+  --ton-surface: #202020;
+  --ton-raised: #292929;
+  --ton-hover: #333333;
+  --ton-border: #444444;
+  --ton-text: #f5f5f5;
+  --ton-muted: #b5b5b5;
+  --ton-accent: #ffdd2d;
+  --ton-accent-hover: #ffe566;
+  --ton-accent-soft: #38321b;
+  --ton-on-accent: #171717;
+  --ton-lime: #ffdd2d;
+  --ton-lime-soft: #38321b;
   --ton-success: #9bd6b5;
   --ton-success-bg: #20392f;
   --ton-warning: #e7c283;

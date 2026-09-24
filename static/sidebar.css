@@ -41,3 +41,5 @@ body.ton-admin.login #container {margin:80px auto;width:28em;max-width:calc(100%
 .ton-admin .selector .selector-filter input {max-width:calc(100% - 40px);box-sizing:border-box}
 .ton-admin .selector ul.selector-chooser {align-self:center;margin:0;flex-shrink:0}
 @media(max-width:600px) {.ton-admin .selector {flex-direction:column}.ton-admin .selector-available,.ton-admin .selector-chosen {flex-basis:auto;width:100%}}
+
+.supervisor-grid {margin-top: 24px;}

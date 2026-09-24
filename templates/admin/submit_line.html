@@ -1,0 +1,6 @@
+{% load i18n admin_urls %}
+<div class="submit-row">
+{% if show_save %}<input type="submit" value="Сохранить" class="default" name="_save">{% endif %}
+<a class="cancel-link" href="{% url opts|admin_urlname:'changelist' %}">Отменить</a>
+{% if show_delete_link and original %}<a class="deletelink" href="{% url opts|admin_urlname:'delete' original.pk|admin_urlquote %}">Удалить</a>{% endif %}
+</div>

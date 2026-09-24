@@ -24,11 +24,28 @@ class RoleFormMixin:
         super().__init__(*args, **kwargs)
         self.fields["role"].initial = user_role(self.instance)
         people = User.objects.filter(is_superuser=False).exclude(pk=self.instance.pk).select_related("profile")
-        self.fields["manager"].queryset = people.filter(profile__role__in=["group_leader", "sector_leader"], is_active=True)
-        self.fields["reports"].queryset = people.exclude(profile__role="sector_leader")
+        role = self.data.get("role") if self.is_bound else getattr(self, "selected_role", None) or user_role(self.instance)
+        self.fields["role"].initial = role
+        parent_role = {"employee": "group_leader", "group_leader": "sector_leader"}.get(role)
+        child_role = {"group_leader": "employee", "sector_leader": "group_leader"}.get(role)
+        self.fields["manager"].queryset = people.filter(profile__role=parent_role, is_active=True) if parent_role else people.none()
+        self.fields["reports"].queryset = people.filter(profile__role=child_role) if child_role else people.none()
         profile = getattr(self.instance, "profile", None)
-        self.fields["manager"].initial = profile.manager_id if profile else None
-        self.fields["reports"].initial = list(self.instance.direct_reports.values_list("user_id", flat=True)) if self.instance.pk else []
+        self.fields["manager"].initial = profile.manager_id if profile and parent_role else None
+        self.fields["reports"].initial = list(self.instance.direct_reports.values_list("user_id", flat=True)) if self.instance.pk and child_role else []
+        self.fields["unit_name"].initial = profile.unit_name if profile else ""
+        self.fields["unit_name"].label = "Название сектора" if role == "sector_leader" else "Название группы"
+        self.fields["manager"].help_text = ""
+        self.fields["reports"].help_text = "Перенос из другой команды выполняется при сохранении."
+        self.fields["reports"].label = "Сотрудники группы" if role == "group_leader" else "Руководители групп"
+        self.fields["reports"].widget = forms.SelectMultiple(attrs={"size": 8})
+        for name, visible in (("manager", parent_role), ("reports", child_role), ("unit_name", child_role)):
+            if not visible:
+                self.fields[name].widget = forms.HiddenInput()
+        # Хэш не помогает администратору: оставляем штатную безопасную смену пароля.
+        if "password" in self.fields:
+            self.fields["password"].help_text = "Пароль нельзя посмотреть. Новый пароль можно задать отдельно."
+            self.fields["password"].widget.template_name = "admin/auth/user/password_summary.html"
 
     def clean(self):
         cleaned = super().clean()
@@ -51,6 +68,7 @@ class RoleFormMixin:
         return cleaned
 
 class TeamCreationForm(RoleFormMixin, UserCreationForm):
+    unit_name = forms.CharField(label="Название группы", max_length=120, required=False)
     role = forms.ChoiceField(label="Роль", choices=ROLE_CHOICES)
     manager = PersonChoice(label="Руководитель", queryset=User.objects.none(), required=False,
         help_text="Сотрудник → РГ; руководитель группы → РС. Можно назначить позже.")
@@ -63,6 +81,7 @@ class TeamCreationForm(RoleFormMixin, UserCreationForm):
         fields = ("username", "first_name", "last_name", "email", "role", "manager", "reports")
 
 class TeamChangeForm(RoleFormMixin, UserChangeForm):
+    unit_name = forms.CharField(label="Название группы", max_length=120, required=False)
     role = forms.ChoiceField(label="Роль", choices=ROLE_CHOICES)
     manager = PersonChoice(label="Руководитель", queryset=User.objects.none(), required=False,
         help_text="Сотрудник → РГ; руководитель группы → РС. Можно назначить позже.")
@@ -85,12 +104,24 @@ class TeamAdmin(UserAdmin):
         ("Сотрудник", {"fields": ("username", "first_name", "last_name", "email")}),
         ("Доступ", {"fields": ("role", "is_active", "password"),
                     "description": "РГ видит свою группу, РС — свои группы. Только администратор имеет доступ к админке."}),
-        ("Команда", {"fields": ("manager", "reports")}),
+        ("Команда", {"fields": ("unit_name", "manager", "reports")}),
         ("История входов", {"fields": ("last_login", "date_joined")}),
     )
-    add_fieldsets = (("Новый сотрудник", {"fields": ("username", "first_name", "last_name", "email", "role", "manager", "reports", "password1", "password2")}),)
+    add_fieldsets = (("Новый сотрудник", {"fields": ("username", "first_name", "last_name", "email", "role", "unit_name", "manager", "reports", "password1", "password2")}),)
     filter_horizontal = ()
     actions = None
+
+    class Media:
+        js = ("team-form.js",)
+
+    def get_form(self, request, obj=None, **kwargs):
+        base = super().get_form(request, obj, **kwargs)
+        class RoleForm(base):
+            selected_role = request.GET.get("role") if request.GET.get("role") in dict(ROLE_CHOICES) else None
+        return RoleForm
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        return super().change_view(request, object_id, form_url, {**(extra_context or {}), "title": "Изменить пользователя"})
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("profile__manager")
@@ -117,7 +148,7 @@ class TeamAdmin(UserAdmin):
         return request.user.is_superuser
 
     def has_delete_permission(self, request, obj=None):
-        return False
+        return request.user.is_superuser and obj is not None and obj.pk != request.user.pk and not obj.is_superuser
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
@@ -125,7 +156,8 @@ class TeamAdmin(UserAdmin):
         profile = UserProfile.objects.get(user=obj)
         previous_manager = profile.manager_id
         profile.manager = form.cleaned_data["manager"]
-        profile.save(update_fields=["manager"])
+        profile.unit_name = form.cleaned_data["unit_name"] if form.cleaned_data["role"] in ("group_leader", "sector_leader") else ""
+        profile.save(update_fields=["manager", "unit_name"])
         reports = list(form.cleaned_data["reports"])
         report_ids = [person.pk for person in reports]
         removed = list(UserProfile.objects.filter(manager=obj).exclude(user_id__in=report_ids).values_list("user_id", flat=True))

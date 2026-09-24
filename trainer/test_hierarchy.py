@@ -130,3 +130,50 @@ class HierarchyTests(TestCase):
             self.assertEqual(response.status_code,200)
             self.assertContains(response,'class="ton-sidebar"')
             self.assertContains(response,'sidebar.css')
+
+    def test_role_fields_filter_choices_and_hide_irrelevant_controls(self):
+        from .user_admin import TeamChangeForm
+        from django import forms
+        employee = TeamChangeForm(instance=self.employee)
+        self.assertIsInstance(employee.fields["reports"].widget, forms.HiddenInput)
+        self.assertEqual(set(employee.fields["manager"].queryset), {self.leader, self.peer, self.outside})
+        sector = TeamChangeForm(instance=self.sector)
+        self.assertIsInstance(sector.fields["manager"].widget, forms.HiddenInput)
+        self.assertEqual(set(sector.fields["reports"].queryset), {self.leader, self.peer, self.outside})
+        leader = TeamChangeForm(instance=self.leader)
+        self.assertEqual(set(leader.fields["manager"].queryset), {self.sector, self.other_sector})
+        self.assertNotIn(self.sector, leader.fields["reports"].queryset)
+        admin = TeamChangeForm(instance=self.admin)
+        for field in ["manager", "reports", "unit_name"]:
+            self.assertIsInstance(admin.fields[field].widget, forms.HiddenInput)
+        self.client.force_login(self.admin)
+        response = self.client.get(f"/admin/auth/user/{self.employee.pk}/change/?role=sector_leader")
+        self.assertIsInstance(response.context["adminform"].form.fields["manager"].widget, forms.HiddenInput)
+        self.assertNotContains(response, 'name="_addanother"')
+        self.assertNotContains(response, 'name="_continue"')
+        self.assertContains(response, "Изменить пользователя")
+        self.assertNotContains(response, "pbkdf2_sha256")
+
+    def test_team_excludes_viewer_counts_all_descendants_and_saves_name(self):
+        self.client.force_login(self.admin)
+        response = self.client.get("/team/")
+        rows = {row["person"].pk: row for row in response.context["rows"]}
+        self.assertNotIn(self.admin.pk, rows)
+        self.assertEqual(rows[self.sector.pk]["reports_count"], 4)
+        url = f"/admin/auth/user/{self.leader.pk}/change/"
+        response = self.client.post(url, {"username": self.leader.username, "role": "group_leader",
+            "manager": self.sector.pk, "reports": [self.employee.pk], "unit_name": "Поддержка бизнеса",
+            "is_active": "on", "_save": "1"})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(UserProfile.objects.get(user=self.leader).unit_name, "Поддержка бизнеса")
+        self.client.force_login(self.leader)
+        self.assertNotIn(self.leader.pk, [r["person"].pk for r in self.client.get("/team/").context["rows"]])
+
+    def test_invalid_sector_manager_cannot_be_submitted(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(f"/admin/auth/user/{self.sector.pk}/change/", {
+            "username": self.sector.username, "role": "sector_leader", "manager": self.leader.pk,
+            "reports": [self.leader.pk, self.peer.pk], "is_active": "on", "_save": "1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("manager", response.context["adminform"].form.errors)
+        self.assertIsNone(UserProfile.objects.get(user=self.sector).manager_id)

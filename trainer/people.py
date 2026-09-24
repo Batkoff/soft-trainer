@@ -83,3 +83,17 @@ def apply_role(user, role):
         user.groups.add(group)
     for cache in ("_perm_cache", "_user_perm_cache", "_group_perm_cache"):
         user.__dict__.pop(cache, None)
+
+
+def unit_names(user):
+    """Названия наследуются по руководителям, без копирования в каждый профиль."""
+    profile = getattr(user, "profile", None)
+    if not profile or user.is_superuser:
+        return ""
+    role = profile.role
+    group = user if role == "group_leader" else profile.manager if role == "employee" else None
+    group_profile = getattr(group, "profile", None)
+    sector = user if role == "sector_leader" else group_profile.manager if group_profile else None
+    sector_profile = getattr(sector, "profile", None)
+    return " / ".join(name for name in [sector_profile.unit_name if sector_profile else "",
+                                       group_profile.unit_name if group_profile else ""] if name)

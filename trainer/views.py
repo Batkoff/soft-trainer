@@ -263,7 +263,7 @@ def profile(request):
         messages.success(request, "Профиль сохранён.")
         return redirect("profile")
     from django.contrib.auth import get_user_model
-    from .people import user_role, display_name
+    from .people import user_role, display_name, unit_names
     role = user_role(request.user)
     supervisors = []
     group = item.manager if role == "employee" and item.manager_id else None
@@ -276,7 +276,7 @@ def profile(request):
     if role in ("group_leader", "sector_leader"):
         supervisors.extend({"role": "Администратор", "name": display_name(admin)} for admin in
             get_user_model().objects.filter(is_superuser=True, is_active=True).select_related("profile"))
-    return render(request, "trainer/profile.html", {"form": form, "nav": "profile", "supervisors": supervisors})
+    return render(request, "trainer/profile.html", {"form": form, "nav": "profile", "supervisors": supervisors, "unit_name": unit_names(request.user)})
 
 @staff_required
 def guide(request):

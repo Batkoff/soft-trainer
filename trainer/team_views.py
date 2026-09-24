@@ -5,7 +5,7 @@ from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q, Sum
 from django.shortcuts import get_object_or_404, render
 from .models import Attempt
-from .people import visible_users, managed_users, is_manager, display_name, user_role, ROLE_CHOICES
+from .people import visible_users, managed_users, is_manager, display_name, user_role, ROLE_CHOICES, unit_names
 
 
 @login_required
@@ -49,7 +49,7 @@ def analytics(request):
         count = sum(totals.get(pk, {}).get("count", 0) for pk in group_ids)
         points = sum(totals.get(pk, {}).get("points", 0) or 0 for pk in group_ids)
         rows.append({"person": person, "name": display_name(person), "role": dict(ROLE_CHOICES)[user_role(person)],
-                     "size": len(group_ids)-1, "count": count, "points": points,
+                     "unit": unit_names(person), "size": len(group_ids)-1, "count": count, "points": points,
                      "average": round(points/count, 1) if count else None})
     page = Paginator(attempts.select_related("user", "user__profile"), 25).get_page(request.GET.get("page"))
     return render(request, "trainer/analytics.html", {"nav": "analytics", "stats": stats, "target": target,
@@ -62,8 +62,10 @@ def analytics(request):
 def team(request):
     if not is_manager(request.user):
         raise PermissionDenied
-    people = visible_users(request.user).select_related("profile__manager", "profile__manager__profile").order_by("first_name", "username")
+    people = managed_users(request.user).exclude(pk=request.user.pk).select_related("profile__manager", "profile__manager__profile").order_by("first_name", "username")
     rows = [{"person": person, "name": display_name(person), "role": dict(ROLE_CHOICES)[user_role(person)],
+             "unit": unit_names(person),
+             "reports_count": managed_users(person).exclude(pk=person.pk).count() if not person.is_superuser else None,
              "manager": display_name(person.profile.manager) if getattr(person, "profile", None) and person.profile.manager_id else "—"}
             for person in people]
     return render(request, "trainer/team.html", {"rows": rows, "nav": "team"})

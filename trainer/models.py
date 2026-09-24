@@ -22,6 +22,7 @@ class UserProfile(models.Model):
     manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, related_name="direct_reports", verbose_name="Руководитель")
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
+    unit_name = models.CharField("Название группы или сектора", max_length=120, blank=True)
     display_name = models.CharField("Отображаемый ник", max_length=60, blank=True)
     avatar = models.CharField("Аватар", max_length=8, choices=AVATARS, default="🙂")
 
