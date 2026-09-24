@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from .evaluation import EvaluationInput, DemoEvaluator, PermanentEvaluationError, TemporaryEvaluationError, calculate_score, get_evaluator
 from .evaluation_prompt import SYSTEM_PROMPT
-from .evaluation_http import LiveEvaluator, checked_quote, fact_items, normalize_result, post_json
+from .evaluation_http import LiveEvaluator, build_http_opener, checked_quote, fact_items, normalize_result, post_json
 from .evaluation_profiles import current_profile, FREE_OPENROUTER_MODEL
 from .models import Attempt, Evaluation, EvaluationTrace, Exercise, SKILLS, default_rubric, demo_rubric
 from .services import retry_attempt, start_sandbox
@@ -167,6 +167,19 @@ class APIContractTests(SimpleTestCase):
         self.assertEqual(body["reasoning"], {"enabled": False})
         self.assertFalse(body["provider"]["allow_fallbacks"])
         self.assertNotIn("models", body)
+
+    @patch("trainer.evaluation_http.request.build_opener")
+    @patch("trainer.evaluation_http.request.ProxyHandler")
+    @patch("trainer.ai_configuration.outbound_proxy_url", return_value="http://user:pass@proxy.example:3128")
+    def test_http_opener_routes_http_and_https_through_configured_proxy(self, _proxy_url, proxy_handler, opener):
+        handler = object()
+        proxy_handler.return_value = handler
+        build_http_opener()
+        proxy_handler.assert_called_once_with({
+            "http": "http://user:pass@proxy.example:3128",
+            "https": "http://user:pass@proxy.example:3128",
+        })
+        self.assertIs(opener.call_args.args[0], handler)
 
     @patch("trainer.evaluation_http.request.build_opener")
     def test_transport_classifies_errors_and_hides_response_secrets(self, opener):
