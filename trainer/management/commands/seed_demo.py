@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
-from trainer.models import Contest, Exercise, default_rubric
+from trainer.models import Contest, Exercise, UserProfile, default_rubric
 
 EXAMPLES = [
     ("Возврат ещё не пришёл", "Возвраты", "Почему возврат опять не пришёл? Мне вчера сказали ждать, сколько можно?",
@@ -61,6 +61,7 @@ class Command(BaseCommand):
             if created:
                 user.set_password(password)
                 user.save()
+            UserProfile.objects.get_or_create(user=user)
             employees.append(user)
         exercises = []
         for title, category, customer, hard, facts, allowed, forbidden in EXAMPLES:
