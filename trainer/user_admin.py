@@ -6,6 +6,7 @@ from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth.models import User, Group
 from .people import ROLE_CHOICES, apply_role, user_role, display_name
 from .models import UserProfile
+from django.db.models import Q
 from .services import audit
 
 class PersonChoice(forms.ModelChoiceField):
@@ -28,7 +29,12 @@ class RoleFormMixin:
         parent_role = {"employee": "group_leader", "group_leader": "sector_leader"}.get(role)
         child_role = {"group_leader": "employee", "sector_leader": "group_leader"}.get(role)
         self.fields["manager"].queryset = people.filter(profile__role=parent_role, is_active=True) if parent_role else people.none()
-        self.fields["reports"].queryset = people.filter(profile__role=child_role) if child_role else people.none()
+        if child_role == "employee":
+            # Старые сотрудники могли быть созданы до появления UserProfile.
+            # Считаем их сотрудниками и даём назначить РГ; при сохранении профиль создастся.
+            self.fields["reports"].queryset = people.filter(Q(profile__role="employee") | Q(profile__isnull=True))
+        else:
+            self.fields["reports"].queryset = people.filter(profile__role=child_role) if child_role else people.none()
         profile = getattr(self.instance, "profile", None)
         self.fields["manager"].initial = profile.manager_id if profile and parent_role else None
         self.fields["reports"].initial = list(self.instance.direct_reports.values_list("user_id", flat=True)) if self.instance.pk and child_role else []
