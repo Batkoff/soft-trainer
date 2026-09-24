@@ -1018,3 +1018,31 @@ a.admin-primary {color:var(--ton-on-accent);}
 .ton-admin .submit-row .cancel-link {padding: 12px 18px; border-radius: 8px; background: var(--ton-raised);}
 .ton-admin .form-row:has(input[type="hidden"]):not(:has(input:not([type="hidden"]), select, textarea)) {display: none;}
 .ton-admin .field-reports select {min-width: 280px; max-width: 100%;}
+
+
+.admin-download-link,
+.admin-downloads a {
+  display:inline-flex;
+  align-items:center;
+  min-height:30px;
+  padding:5px 9px;
+  border:1px solid var(--ton-border);
+  border-radius:7px;
+  background:var(--ton-raised);
+  color:var(--ton-text);
+  font-size:12px;
+  font-weight:600;
+  text-decoration:none
+}
+
+.admin-download-link:hover,
+.admin-downloads a:hover {
+  background:var(--ton-hover);
+  color:var(--ton-accent)
+}
+
+.admin-downloads {
+  display:inline-flex;
+  gap:6px;
+  white-space:nowrap
+}
