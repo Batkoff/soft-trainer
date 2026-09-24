@@ -6,7 +6,6 @@ from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth.models import User, Group
 from .people import ROLE_CHOICES, apply_role, user_role, display_name
 from .models import UserProfile
-from django.db.models import Q
 from .services import audit
 
 class PersonChoice(forms.ModelChoiceField):
@@ -38,7 +37,8 @@ class RoleFormMixin:
         self.fields["manager"].help_text = ""
         self.fields["reports"].help_text = "Перенос из другой команды выполняется при сохранении."
         self.fields["reports"].label = "Сотрудники группы" if role == "group_leader" else "Руководители групп"
-        self.fields["reports"].widget = forms.SelectMultiple(attrs={"size": 8})
+        # Не заменяем FilteredSelectMultiple: штатный виджет Django показывает
+        # две колонки «доступные ↔ выбранные» и корректно отправляет выбранных.
         for name, visible in (("manager", parent_role), ("reports", child_role), ("unit_name", child_role)):
             if not visible:
                 self.fields[name].widget = forms.HiddenInput()
