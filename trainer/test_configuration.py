@@ -5,7 +5,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase, override_settings
-from .ai_configuration import api_key
+from .ai_configuration import api_key, outbound_proxy_url
 from .evaluation import get_evaluator, PermanentEvaluationError
 from .evaluation_profiles import current_profile
 from .models import AIConfiguration, AuditEvent, demo_rubric
@@ -39,6 +39,42 @@ class ConfigurationTests(TestCase):
         self.save_settings(api_key="")
         self.assertEqual(api_key("openrouter"), secret)
         self.assertEqual(current_profile()["model"], "openai/gpt-4.1-mini")
+
+    def test_proxy_credentials_are_encrypted_and_connection_test_uses_saved_route(self):
+        with patch("trainer.ai_views.check_provider_connection", return_value={
+            "ok": True, "status": 200, "host": "openrouter.ai", "via_proxy": True,
+            "message": "Подключение успешно: HTTP 200. API-ключ принят.",
+        }) as check:
+            response = self.save_settings(
+                api_key="proxy-test-api-key",
+                proxy_enabled="on",
+                proxy_url="http://proxy.example:3128",
+                proxy_username="proxy-user",
+                proxy_password="proxy-password-secret",
+                action="test",
+            )
+        self.assertEqual(response.status_code, 302)
+        config = AIConfiguration.objects.get()
+        self.assertTrue(config.proxy_enabled)
+        self.assertEqual(config.proxy_url, "http://proxy.example:3128")
+        self.assertNotIn("proxy-password-secret", config.proxy_secret)
+        self.assertIn("proxy-user", outbound_proxy_url())
+        self.assertNotContains(self.client.get("/settings/ai/"), "proxy-password-secret")
+        self.assertNotIn("proxy-password-secret", json.dumps(list(AuditEvent.objects.values_list("details", flat=True))))
+        check.assert_called_once_with("openrouter", "proxy-test-api-key")
+
+    def test_invalid_proxy_is_rejected_without_losing_existing_settings(self):
+        self.assertEqual(self.save_settings(api_key="first-key").status_code, 302)
+        response = self.save_settings(
+            proxy_enabled="on",
+            proxy_url="socks5://proxy.example:1080",
+            proxy_username="user",
+            proxy_password="secret",
+        )
+        self.assertEqual(response.status_code, 200)
+        config = AIConfiguration.objects.get()
+        self.assertFalse(config.proxy_enabled)
+        self.assertEqual(api_key("openrouter"), "first-key")
 
     def test_provider_model_mismatch_rejected(self):
         response = self.save_settings(provider="openai", api_key="not-real")
