@@ -337,6 +337,10 @@ class AIConfiguration(models.Model):
     model = models.CharField(max_length=200)
     openai_secret = models.TextField(blank=True)
     openrouter_secret = models.TextField(blank=True)
+    proxy_enabled = models.BooleanField("Использовать прокси", default=False)
+    proxy_url = models.CharField("Адрес HTTP(S)-прокси", max_length=500, blank=True)
+    proxy_username = models.CharField("Логин прокси", max_length=255, blank=True)
+    proxy_secret = models.TextField("Пароль прокси", blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
