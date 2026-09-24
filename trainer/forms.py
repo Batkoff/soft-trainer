@@ -1,5 +1,6 @@
 from django import forms
 from django.conf import settings
+from urllib.parse import urlsplit
 from .models import Attempt, Exercise, SKILLS, UserProfile
 
 class SandboxForm(forms.Form):
@@ -47,6 +48,14 @@ class AIConfigurationForm(forms.Form):
     api_key = forms.CharField(label="Новый API-ключ", max_length=1000, required=False,
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
         help_text="Оставьте пустым, чтобы сохранить ключ выбранного провайдера.")
+    proxy_enabled = forms.BooleanField(label="Использовать прокси для запросов к нейросети", required=False)
+    proxy_url = forms.CharField(label="HTTP(S)-прокси", max_length=500, required=False,
+        widget=forms.URLInput(attrs={"placeholder": "http://proxy.example:3128"}),
+        help_text="CONNECT-прокси. Укажите только схему, хост и порт; логин и пароль — ниже.")
+    proxy_username = forms.CharField(label="Логин прокси", max_length=255, required=False)
+    proxy_password = forms.CharField(label="Новый пароль прокси", max_length=1000, required=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+        help_text="Оставьте пустым, чтобы сохранить ранее введённый пароль.")
 
     def clean(self):
         values = super().clean()
@@ -60,4 +69,22 @@ class AIConfigurationForm(forms.Form):
         values["model"] = model
         if any(c.isspace() for c in values.get("api_key", "")):
             self.add_error("api_key", "Ключ не должен содержать пробелы или переносы строк.")
+
+        proxy_url = (values.get("proxy_url") or "").strip()
+        if values.get("proxy_enabled") and not proxy_url:
+            self.add_error("proxy_url", "Укажите адрес прокси.")
+        if proxy_url:
+            parsed = urlsplit(proxy_url)
+            try:
+                port = parsed.port
+            except ValueError:
+                port = None
+            if parsed.scheme not in ("http", "https") or not parsed.hostname or not port:
+                self.add_error("proxy_url", "Формат: http://host:port или https://host:port.")
+            elif parsed.username or parsed.password or parsed.path not in ("", "/") or parsed.query or parsed.fragment:
+                self.add_error("proxy_url", "В адресе оставьте только схему, хост и порт. Авторизация вводится отдельно.")
+        if values.get("proxy_password") and not (values.get("proxy_username") or "").strip():
+            self.add_error("proxy_username", "Для пароля прокси укажите логин.")
+        if "\n" in values.get("proxy_username", "") or "\r" in values.get("proxy_username", ""):
+            self.add_error("proxy_username", "Логин прокси не должен содержать переносы строк.")
         return values
