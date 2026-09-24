@@ -6,6 +6,7 @@ import socket
 import time
 from http.client import HTTPException
 from urllib import error, request
+from urllib.parse import urlsplit
 from django.conf import settings
 from .evaluation import PermanentEvaluationError, TemporaryEvaluationError
 from .evaluation_profiles import PROMPT_VERSION
@@ -16,12 +17,56 @@ logger = logging.getLogger("trainer.api")
 MAX_RESPONSE_BYTES = 256 * 1024
 ENDPOINTS = {"openai": "https://api.openai.com/v1/chat/completions",
              "openrouter": "https://openrouter.ai/api/v1/chat/completions"}
+CHECK_ENDPOINTS = {"openai": "https://api.openai.com/v1/models",
+                   "openrouter": "https://openrouter.ai/api/v1/key"}
 FACT_STATES = ("preserved", "omitted", "contradicted", "uncertain")
 
 class NoRedirect(request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         # Ключ разрешено отправлять только выбранному фиксированному API-хосту.
         return None
+
+
+def build_http_opener():
+    """Один и тот же маршрут для проверки соединения и реальных запросов."""
+    from .ai_configuration import outbound_proxy_url
+    proxy = outbound_proxy_url()
+    proxies = {"http": proxy, "https": proxy} if proxy else {}
+    return request.build_opener(request.ProxyHandler(proxies), NoRedirect())
+
+
+def check_provider_connection(provider, key):
+    """Бесплатно проверяет маршрут до провайдера и принятие текущего API-ключа."""
+    endpoint = CHECK_ENDPOINTS.get(provider)
+    if not endpoint:
+        return {"ok": False, "message": "Неизвестный провайдер.", "host": "", "via_proxy": False}
+    from .ai_configuration import outbound_proxy_url
+    try:
+        via_proxy = bool(outbound_proxy_url())
+        req = request.Request(endpoint, headers={"Authorization": f"Bearer {key}", "Accept": "application/json"}, method="GET")
+        with build_http_opener().open(req, timeout=min(settings.EVALUATOR_TIMEOUT, 20)) as response:
+            response.read(4096)
+            status = response.status
+        return {"ok": 200 <= status < 300, "status": status, "host": urlsplit(endpoint).hostname or "",
+                "via_proxy": via_proxy,
+                "message": f"Подключение успешно: HTTP {status}. API-ключ принят."}
+    except error.HTTPError as exc:
+        status = exc.code
+        exc.close()
+        host = urlsplit(endpoint).hostname or ""
+        if status in (401, 403):
+            message = f"Домен {host} доступен, но API отклонил ключ (HTTP {status})."
+        elif status == 429:
+            message = f"Домен {host} доступен, но провайдер ограничил частоту запросов (HTTP 429)."
+        else:
+            message = f"Домен {host} доступен, но проверка вернула HTTP {status}."
+        return {"ok": False, "status": status, "host": host, "via_proxy": via_proxy, "message": message}
+    except ValidationError as exc:
+        return {"ok": False, "host": urlsplit(endpoint).hostname or "", "via_proxy": False,
+                "message": "; ".join(exc.messages)}
+    except (error.URLError, TimeoutError, socket.timeout, HTTPException, ConnectionError) as exc:
+        return {"ok": False, "host": urlsplit(endpoint).hostname or "", "via_proxy": via_proxy,
+                "message": f"Не удалось подключиться к {urlsplit(endpoint).hostname}: {type(exc).__name__}."}
 
 def fact_items(assignment):
     fields = ("customer_message", "hard_answer", "required_facts", "allowed_actions", "forbidden_promises")
@@ -155,7 +200,7 @@ def post_json(provider, key, body, trace=None):
     req = request.Request(ENDPOINTS[provider], data=json.dumps(body, ensure_ascii=False).encode(),
                           headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"}, method="POST")
     try:
-        with request.build_opener(NoRedirect).open(req, timeout=settings.EVALUATOR_TIMEOUT) as response:
+        with build_http_opener().open(req, timeout=settings.EVALUATOR_TIMEOUT) as response:
             content = response.read(MAX_RESPONSE_BYTES+1)
         if len(content) > MAX_RESPONSE_BYTES:
             raise TemporaryEvaluationError("Ответ API слишком большой.")
