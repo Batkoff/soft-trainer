@@ -33,6 +33,44 @@ class ManagementTests(TestCase):
             self.assertEqual(self.client.get(path).status_code, 200, path)
         self.assertEqual(self.client.post(f"/admin/trainer/exercise/{self.exercise.pk}/new-version/").status_code, 403)
 
+    def test_team_forms_show_expected_people_and_save_manager(self):
+        User = get_user_model()
+        sector = User.objects.create_user("sector", password="test-password")
+        apply_role(sector, "sector_leader")
+        legacy = User.objects.create_user("legacy", first_name="Без", last_name="Профиля", password="test-password")
+        UserProfile.objects.filter(user=legacy).delete()
+
+        self.client.force_login(self.admin)
+
+        # РС получает штатный двухколоночный список доступных/выбранных РГ.
+        sector_page = self.client.get(f"/admin/auth/user/{sector.pk}/change/")
+        self.assertContains(sector_page, "Руководители групп")
+        self.assertContains(sector_page, 'name="reports"')
+        self.assertContains(sector_page, "selectfilter")
+        self.assertContains(sector_page, self.leader.username)
+
+        # Старый сотрудник без UserProfile всё равно доступен РГ для назначения.
+        leader_page = self.client.get(f"/admin/auth/user/{self.leader.pk}/change/")
+        self.assertContains(leader_page, legacy.username)
+
+        # Сотруднику без руководителя можно назначить РГ и сохранить карточку.
+        response = self.client.post(f"/admin/auth/user/{legacy.pk}/change/", {
+            "username": legacy.username,
+            "first_name": legacy.first_name,
+            "last_name": legacy.last_name,
+            "email": "",
+            "role": "employee",
+            "is_active": "on",
+            "manager": self.leader.pk,
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(UserProfile.objects.get(user=legacy).manager_id, self.leader.pk)
+
+        # РГ может выбрать РС; поле не исчезает.
+        leader_page = self.client.get(f"/admin/auth/user/{self.leader.pk}/change/")
+        self.assertContains(leader_page, 'name="manager"')
+        self.assertContains(leader_page, sector.username)
+
     def test_create_leader_with_one_role_field(self):
         self.client.force_login(self.admin)
         response = self.client.post("/admin/auth/user/add/", {"username": "new-leader", "first_name": "Новый",
