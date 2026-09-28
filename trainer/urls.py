@@ -4,6 +4,7 @@ from .ai_views import ai_settings
 from .avatars import avatar
 
 urlpatterns = [
+    path("attempts/<uuid:attempt_id>/recheck/", views.recheck, name="recheck"),
     path("avatars/<int:user_id>/", avatar, name="avatar"),
     path("settings/ai/", ai_settings, name="ai_settings"),
     path("", views.home, name="home"),

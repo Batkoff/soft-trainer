@@ -4,6 +4,8 @@ from django.utils import timezone
 from .releases import VERSION
 
 EVENT_TITLES = {
+    "ai_recheck_requested": "Запрошена перепроверка нейросетью",
+    "ai_recheck_completed": "Оценка перепроверена нейросетью", "ai_recheck_error": "Ошибка перепроверки",
     "user_archived": "Пользователь удалён из команды", "user_restored": "Доступ восстановлен",
     "team_released": "Пользователь освобождён от руководителя",
     "team_updated": "Изменён состав команды", "team_assignment": "Назначен руководитель",

@@ -154,9 +154,13 @@ def attempt_page(request, attempt_id):
     skills = [{"name": label, "value": payload.get("skills", {}).get(key), "scale": scale,
                "percent": round(payload.get("skills", {}).get(key, 0)*100/scale),
                "note": payload.get("skill_notes", {}).get(key, "")} for key, label in SKILLS.items()]
-    review = AuditEvent.objects.filter(object_id=str(attempt.pk), action="manual_review").first()
+    from .models import EvaluationRecheck
+    recheck = EvaluationRecheck.objects.filter(attempt=attempt).first()
+    recheck_pending = bool(recheck and recheck.status in ("queued", "running", "retry"))
+    latest_review = AuditEvent.objects.filter(object_id=str(attempt.pk), action__in=["manual_review", "ai_recheck_completed"]).first()
+    review = latest_review if latest_review and latest_review.action == "manual_review" else None
     return render(request, "trainer/attempt.html", {"attempt": attempt, "payload": payload, "skills": skills,
-        "review": review, "skills_reviewed": bool(attempt.reviewed_skills),
+        "review": review, "recheck": recheck, "recheck_pending": recheck_pending, "skills_reviewed": bool(attempt.reviewed_skills),
         "editable": attempt.user_id == request.user.pk, "can_review": can_review(request.user, attempt),
         "nav": "training" if attempt.user_id == request.user.pk else "analytics", "server_now": timezone.now(),
         "grading_is_demo": payload.get("is_demo", profile_for_rubric(attempt.rubric).get("provider") == "demo")})
@@ -209,7 +213,10 @@ def status(request, attempt_id):
     attempt = owned_attempt(request, attempt_id)
     if attempt.status == Attempt.Status.WRITING and attempt.expires_at <= timezone.now():
         attempt = services.finish_attempt(attempt.pk, expired=True)
-    response = JsonResponse(attempt_state(attempt))
+    from .rechecks import pending_rechecks
+    state = attempt_state(attempt)
+    state["recheck_pending"] = pending_rechecks(attempt=attempt)
+    response = JsonResponse(state)
     response["Cache-Control"] = "no-store"
     return response
 
@@ -309,3 +316,16 @@ def health(request):
         return JsonResponse({"status": "ok"})
     except Exception:
         return JsonResponse({"status": "unavailable"}, status=503)
+
+
+@staff_required
+@require_POST
+def recheck(request, attempt_id):
+    from .rechecks import request_recheck
+    attempt = owned_attempt(request, attempt_id)
+    try:
+        request_recheck(request.user, attempt.pk)
+        messages.success(request, "Ответ отправлен на перепроверку. Прежние баллы действуют до получения новой оценки.")
+    except ValidationError as exc:
+        messages.error(request, error_text(exc))
+    return redirect("attempt", attempt_id=attempt.pk)

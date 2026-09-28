@@ -9,6 +9,7 @@ from django.utils import timezone
 from .models import Assignment, Attempt, AuditEvent, Contest, Exercise, Evaluation, default_rubric, demo_rubric
 from .evaluation_profiles import profile_for_rubric, profile_has_key
 from .people import can_review, is_manager
+from .rechecks import pending_rechecks
 
 MAX_ANSWER_LENGTH = 6000
 
@@ -164,6 +165,8 @@ def review_attempt(user, attempt_id, score=None, hard_verdict="passed", reason="
     attempt = lock_attempt_with_contest(attempt_id)
     if not can_review(user, attempt):
         raise PermissionDenied
+    if pending_rechecks(attempt=attempt):
+        raise ValidationError("Дождитесь перепроверки нейросетью.")
     if attempt.contest_id:
         contest = attempt.contest
         if contest.status == Contest.Status.FINISHED:
@@ -235,6 +238,8 @@ def finalize_contest(user, contest_id):
         return contest
     if contest.status != Contest.Status.ACTIVE or contest.effective_end > timezone.now():
         raise ValidationError("Сначала завершите приём ответов кнопкой «Завершить досрочно» или дождитесь окончания конкурса.")
+    if pending_rechecks(attempt__contest=contest):
+        raise ValidationError("Дождитесь перепроверки нейросетью.")
     if Attempt.objects.filter(contest=contest).exclude(status=Attempt.Status.GRADED).exists():
         raise ValidationError("Дождитесь проверки всех ответов и разрешите спорные оценки.")
     freeze_standings(contest, user, "contest_finalized")
@@ -276,7 +281,7 @@ def close_contest_early(user, contest_id):
         attempt.expires_at = min(attempt.expires_at, contest.effective_end)
         attempt.save(update_fields=["expires_at"])
         finish_attempt(attempt.pk, expired=True)
-    if not Attempt.objects.filter(contest=contest).exclude(status=Attempt.Status.GRADED).exists():
+    if not pending_rechecks(attempt__contest=contest) and not Attempt.objects.filter(contest=contest).exclude(status=Attempt.Status.GRADED).exists():
         freeze_standings(contest, user, "contest_finalized")
     return contest
 
@@ -296,6 +301,8 @@ def auto_finalize_expired_contests(limit=100):
             contest = Contest.objects.select_for_update().get(pk=contest_id)
             list(Attempt.objects.select_for_update().filter(contest_id=contest_id).values_list("pk", flat=True))
             if contest.status != Contest.Status.ACTIVE or contest.effective_end > timezone.now():
+                continue
+            if pending_rechecks(attempt__contest=contest):
                 continue
             if Attempt.objects.filter(contest=contest).exclude(status=Attempt.Status.GRADED).exists():
                 continue

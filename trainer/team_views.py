@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q, Sum
 from django.shortcuts import get_object_or_404, render
 from .models import Attempt
+from .dashboard import dashboard_data
 from .people import visible_users, managed_users, is_manager, display_name, user_role, ROLE_CHOICES, unit_names
 
 
@@ -52,7 +53,7 @@ def analytics(request):
                      "unit": unit_names(person), "size": len(group_ids)-1, "count": count, "points": points,
                      "average": round(points/count, 1) if count else None})
     page = Paginator(attempts.select_related("user", "user__profile"), 25).get_page(request.GET.get("page"))
-    return render(request, "trainer/analytics.html", {"nav": "analytics", "stats": stats, "target": target,
+    return render(request, "trainer/analytics.html", {"nav": "analytics", "dashboard": dashboard_data(graded), "stats": stats, "target": target,
         "target_name": display_name(target) if target else "", "rows": rows, "recent": page,
         "contest": contest, "filter_contests": visible_contests(request.user),
         "can_manage_team": request.user.is_superuser, "team_access": is_manager(request.user)})

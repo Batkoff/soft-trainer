@@ -137,3 +137,6 @@ async def recover_jobs(timestamp: int):
     finalized = await sync_to_async(auto_finalize_expired_contests)()
     if finalized:
         logger.info("contests_auto_finalized", extra={"context": {"contest_ids": finalized}})
+
+# Регистрация отдельной задачи перепроверки в том же PostgreSQL-воркере.
+from .rechecks import evaluate_recheck  # noqa: E402,F401

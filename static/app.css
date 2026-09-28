@@ -2145,3 +2145,24 @@ footer {
 .big-score {color:var(--ton-accent);}
 .public {background:var(--ton-bg);}
 footer {display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
+
+/* Диаграммы работают без внешних библиотек и остаются читаемыми без JavaScript. */
+.dashboard-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.dashboard-trend {grid-column:1/-1}
+.dashboard-grid h2 {margin:6px 0 10px}
+.daily-chart {display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:10px;margin:28px 0 20px}
+.daily-column {position:relative;text-align:center;min-width:0;outline-offset:3px}
+.daily-value {display:block;font-weight:700;font-size:13px;height:26px}
+.daily-track {height:140px;display:flex;align-items:flex-end;background:var(--ton-raised);border-radius:8px;overflow:hidden}
+.daily-fill {width:100%;background:linear-gradient(0deg,var(--ton-accent-soft),var(--ton-accent));border-radius:8px 8px 0 0;min-height:3px}
+.daily-label {display:block;margin-top:9px;color:var(--muted);font-size:11px}
+.daily-tooltip {display:none;position:absolute;bottom:28px;left:50%;transform:translateX(-50%);z-index:2;background:var(--ton-hover);padding:8px;border-radius:8px;white-space:nowrap;font-size:12px}
+.daily-column:hover .daily-tooltip,.daily-column:focus .daily-tooltip {display:block}
+.dashboard-bars {display:grid;gap:20px;margin-top:24px}
+.dashboard-bar>div:first-child {display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:14px}
+.dashboard-track {height:8px;border-radius:8px;background:var(--ton-raised);overflow:hidden}
+.dashboard-track span {display:block;height:100%;border-radius:8px;background:var(--ton-accent)}
+.dashboard-track.low span {background:var(--ton-danger)}
+.dashboard-track.medium span {background:var(--ton-warning)}
+.dashboard-track.good span {background:var(--ton-success)}
+@media(max-width:700px){.dashboard-grid{grid-template-columns:1fr}.daily-chart{gap:4px}.daily-label{font-size:9px}.daily-value{font-size:11px}.daily-track{height:100px}}

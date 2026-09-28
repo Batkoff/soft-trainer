@@ -170,3 +170,16 @@ if (contestNavigation && contestNavigation.dataset.archiveMode !== "true") {
     if (document.visibilityState === "visible") refreshContestIfChanged();
   });
 }
+
+// Перепроверка не меняет статус старой оценки: ждём отдельный признак завершения.
+const recheckPanel = document.querySelector("[data-poll-recheck]");
+if (recheckPanel) {
+  const pollRecheck = async () => {
+    try {
+      const state = await requestJSON(`/attempts/${recheckPanel.dataset.pollRecheck}/status/`);
+      if (!state.recheck_pending) { window.location.reload(); return; }
+    } catch (_) { /* Временный разрыв связи не останавливает проверку на сервере. */ }
+    setTimeout(pollRecheck, document.hidden ? 15000 : 4000);
+  };
+  setTimeout(pollRecheck, 4000);
+}

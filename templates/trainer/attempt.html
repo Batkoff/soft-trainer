@@ -31,6 +31,7 @@
   <div class="result-explanation"><span class="badge {% if attempt.hard_verdict == 'violated' %}review{% else %}neutral{% endif %}">Hard: {{ attempt.get_hard_verdict_display }}</span><h2>{% if not attempt.answer %}Ответ не заполнен{% elif attempt.hard_verdict == 'violated' %}Hard-ошибка: рейтинговый балл — 0{% elif grading_is_demo %}Проверка каркаса завершена{% else %}Разбор готов{% endif %}</h2><p class="muted">{% if review %}{{ review.details.reason }}{% elif grading_is_demo %}Баллы демонстрационные. Эта оценка не отражает качество текста.{% else %}Оценка учитывает сохранение смысла и качество общения с клиентом.{% endif %}</p></div>
 </section>
 {% endif %}
+{% if recheck_pending %}<div class="message section" role="status" data-poll-recheck="{{ attempt.pk }}">Идёт перепроверка нейросетью. Прежняя оценка пока действует. <a href="{% url 'attempt' attempt.pk %}">Обновить результат</a></div>{% elif recheck.status == 'failed' %}<div class="message section">Перепроверка не завершена: {{ recheck.error }} Прежняя оценка сохранена.</div>{% elif recheck.status == 'completed' %}<div class="message section">Оценка обновлена нейросетью. Предыдущая: {{ recheck.previous.score|default_if_none:'не определена' }} / 100.</div>{% endif %}
 {% if payload %}
 <section class="card section">
   <p class="eyebrow">ПРОВЕРКА HARD-ИНФОРМАЦИИ{% if review %} · ИСХОДНЫЙ РАЗБОР{% endif %}</p>
@@ -53,7 +54,7 @@
 {% if attempt.status != 'writing' %}
 <div class="result-grid section"><section class="card"><p class="eyebrow">ИСХОДНЫЙ ОТВЕТ</p><p class="preserve">{{ attempt.snapshot.hard_answer }}</p></section><section class="card"><p class="eyebrow">{% if editable %}ВАШ ОТВЕТ{% else %}ОТВЕТ СОТРУДНИКА{% endif %}{% if attempt.timed_out %} · СОХРАНЁН ПО ТАЙМЕРУ{% endif %}</p><p class="preserve">{{ attempt.answer|default:'Ответ не заполнен.' }}</p></section></div>
 <div class="result-actions"><a class="button primary" href="{% if editable %}{% url 'home' %}{% else %}{% url 'admin:trainer_attempt_changelist' %}{% endif %}">{% if editable %}К тренировке →{% else %}К работам сотрудников →{% endif %}</a>
-  {% if can_review %}{% if attempt.status == 'review' or attempt.status == 'graded' %}<a class="button" href="{% url 'review' attempt.pk %}">Пересмотреть оценку</a>{% endif %}{% if attempt.status == 'review' and not payload %}<form action="{% url 'retry' attempt.pk %}" method="post">{% csrf_token %}<button class="button" type="submit">Повторить проверку</button></form>{% endif %}{% endif %}
+  {% if can_review and not recheck_pending and attempt.contest.status != "finished" %}{% if attempt.status == 'review' or attempt.status == 'graded' %}<a class="button" href="{% url 'review' attempt.pk %}">Пересмотреть вручную</a><form action="{% url 'recheck' attempt.pk %}" method="post">{% csrf_token %}<button class="button" type="submit">Перепроверить нейросетью</button></form>{% endif %}{% if attempt.status == 'review' and not payload %}<form action="{% url 'retry' attempt.pk %}" method="post">{% csrf_token %}<button class="button" type="submit">Повторить проверку</button></form>{% endif %}{% endif %}
 </div>
 {% endif %}
 {% endblock %}

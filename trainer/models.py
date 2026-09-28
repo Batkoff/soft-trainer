@@ -357,3 +357,19 @@ class EvaluationPrompt(models.Model):
 
     def __str__(self):
         return "Правила оценки новых конкурсов и песочницы"
+
+
+class EvaluationRecheck(models.Model):
+    """Отдельная заявка: старая оценка действует, пока новая не получена."""
+    attempt = models.ForeignKey(Attempt, on_delete=models.PROTECT, related_name="rechecks")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    status = models.CharField(max_length=12, default="queued")
+    tries = models.PositiveSmallIntegerField(default=0)
+    previous = models.JSONField(default=dict)
+    error = models.CharField(max_length=240, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [models.UniqueConstraint(fields=["attempt"], condition=models.Q(status__in=["queued", "running", "retry"]), name="one_active_recheck")]
