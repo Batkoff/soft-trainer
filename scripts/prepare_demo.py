@@ -55,6 +55,9 @@ def prepare(root=ROOT, host=None, port=None):
         "HTTP_BIND": "127.0.0.1", "HTTP_PORT": "8080", "SECURE_COOKIES": "0",
         "DEMO_EVALUATION_DELAY": "2", "LOG_LEVEL": "INFO", "EVALUATOR_BACKEND": "openrouter",
         "EVALUATOR_MODEL": "", "OPENAI_API_KEY": "", "OPENROUTER_API_KEY": "",
+        "EMAIL_BACKEND": "django.core.mail.backends.smtp.EmailBackend", "EMAIL_HOST": "connect.smtp.bz",
+        "EMAIL_PORT": "587", "EMAIL_HOST_USER": "", "EMAIL_HOST_PASSWORD": "",
+        "EMAIL_USE_TLS": "1", "EMAIL_USE_SSL": "0", "EMAIL_TIMEOUT": "15", "DEFAULT_FROM_EMAIL": "",
     }
     updates = {key: value for key, value in defaults.items() if key not in values}
     # Поддерживает ручное копирование .env.example с пустыми секретами.

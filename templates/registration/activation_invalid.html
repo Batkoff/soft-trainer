@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block title %}Ссылка недействительна — Тон{% endblock %}
+{% block content %}
+<div class="login-layout auth-layout"><section class="login-intro"><span class="brand-icon large">т</span><p class="eyebrow">ССЫЛКА НЕ РАБОТАЕТ</p><h1>Не удалось подтвердить почту.</h1><p>Ссылка устарела или уже была использована.</p></section><section class="login-card"><h2>Попробуйте снова</h2><p class="muted">Зарегистрируйтесь повторно или обратитесь к администратору.</p><p><a class="button primary full" href="{% url 'register' %}">Зарегистрироваться</a></p><p class="small"><a href="{% url 'login' %}">Вернуться ко входу</a></p></section></div>
+{% endblock %}

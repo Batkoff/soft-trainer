@@ -6,7 +6,8 @@ from django.db import transaction
 from django.db.models import Q
 
 ROLE_CHOICES = [("employee", "Сотрудник"), ("group_leader", "Руководитель группы"),
-                ("sector_leader", "Руководитель сектора"), ("admin", "Администратор")]
+                ("sector_leader", "Руководитель сектора"), ("admin", "Администратор"),
+                ("unassigned", "Без роли")]
 LEADER_GROUP = "Руководители тренажёра"
 
 
@@ -67,7 +68,9 @@ def apply_role(user, role):
     profile, _ = UserProfile.objects.get_or_create(user=user)
     if profile.role != role and user.direct_reports.exists():
         raise ValidationError("Сначала переведите подчинённых к другому руководителю.")
-    user.is_staff = role != "employee"
+    # Пользователь без роли не получает доступа ни к админке, ни к руководящим
+    # разделам. Администратор определяется флагом superuser, а не профилем.
+    user.is_staff = role in ("group_leader", "sector_leader", "admin")
     user.is_superuser = role == "admin"
     user.save(update_fields=["is_staff", "is_superuser"])
     profile.role = "employee" if role == "admin" else role

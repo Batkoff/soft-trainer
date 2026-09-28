@@ -15,6 +15,7 @@ class UserProfile(models.Model):
         EMPLOYEE = "employee", "Сотрудник"
         GROUP_LEADER = "group_leader", "Руководитель группы"
         SECTOR_LEADER = "sector_leader", "Руководитель сектора"
+        UNASSIGNED = "unassigned", "Без роли"
 
     role = models.CharField("Роль", max_length=20, choices=Role.choices, default=Role.EMPLOYEE)
     manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,

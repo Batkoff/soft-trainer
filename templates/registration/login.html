@@ -1,10 +1,11 @@
 {% extends 'base.html' %}{% block title %}Вход — Тон{% endblock %}{% block content %}
 <div class="login-layout"><section class="login-intro"><span class="brand-icon large">т</span><h1>ТОН. НАЙДИ СВОЙ.</h1><p>Пять коротких заданий, чтобы потренироваться объяснять, поддерживать и говорить понятно.</p><div class="login-note"><span>05</span><p>сообщений в день<br><strong>3 минуты на каждое</strong></p></div></section>
-<section class="login-card"><h2>Войди в тон.</h2><p class="muted">Войдите под своей учебной учётной записью.</p>
+<section class="login-card"><h2>Войди в тон.</h2><p class="muted">Войдите по логину или почте.</p>
 <form method="post">{% csrf_token %}{% if form.errors %}<div class="form-error" role="alert">Проверьте логин и пароль.</div>{% endif %}
 {% if throttled %}<div class="form-error" role="alert">Слишком много попыток входа. Попробуйте через 10 минут.</div>{% endif %}
-<label for="id_username">Логин</label><input type="text" id="id_username" name="username" autocomplete="username" maxlength="150" required autofocus value="{{ form.username.value|default:'' }}">
+<label for="id_username">Логин или почта</label><input type="text" id="id_username" name="username" autocomplete="username" maxlength="254" required autofocus value="{{ form.username.value|default:'' }}">
 <label for="id_password">Пароль</label><input type="password" id="id_password" name="password" autocomplete="current-password" required>
 <input type="hidden" name="next" value="{{ next }}"><button class="button primary full" type="submit">Войти</button></form>
-<p class="small muted">Учётную запись выдаёт администратор.<br>Подключение к системам банка не требуется.</p></section></div>
+<p class="small"><a href="{% url 'password_reset' %}">Забыли пароль?</a> · <a href="{% url 'register' %}">Зарегистрироваться</a></p>
+<p class="small muted">После подтверждения почты роль и доступ к тренировке назначает администратор.<br>Подключение к системам банка не требуется.</p></section></div>
 {% endblock %}

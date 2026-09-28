@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}Проверьте почту — Тон{% endblock %}
+{% block content %}
+<div class="login-layout auth-layout">
+  <section class="login-intro"><span class="brand-icon large">т</span><p class="eyebrow">ПОЧТИ ГОТОВО</p><h1>Проверьте почту.</h1><p>Мы отправили ссылку подтверждения на указанный адрес.</p></section>
+  <section class="login-card"><h2>Письмо отправлено</h2><p class="muted">Адрес: <strong>{{ email }}</strong></p><p>Откройте письмо и перейдите по ссылке. Только после этого можно войти. Роль и доступ к тренировке назначает администратор.</p><p class="small muted">Если письма нет несколько минут, проверьте папку «Спам» или попросите администратора проверить SMTP-настройки.</p><p class="small"><a href="{% url 'login' %}">Вернуться ко входу</a></p></section>
+</div>
+{% endblock %}

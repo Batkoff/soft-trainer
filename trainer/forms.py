@@ -1,7 +1,78 @@
 from django import forms
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.db import transaction
+import secrets
 from urllib.parse import urlsplit
 from .models import Attempt, Exercise, SKILLS, UserProfile
+
+
+class RegistrationForm(forms.Form):
+    """Минимальная самостоятельная регистрация с подтверждением почты."""
+
+    email = forms.EmailField(label="Почта", max_length=254)
+    display_name = forms.CharField(label="Отображаемый ник", max_length=60, required=False)
+    password1 = forms.CharField(
+        label="Пароль", min_length=8,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+    password2 = forms.CharField(
+        label="Повторите пароль", min_length=8,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().casefold()
+        User = get_user_model()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("Пользователь с такой почтой уже зарегистрирован.")
+        return email
+
+    def clean(self):
+        cleaned = super().clean()
+        first, second = cleaned.get("password1"), cleaned.get("password2")
+        if first and second and first != second:
+            self.add_error("password2", "Пароли не совпадают.")
+        if first:
+            try:
+                validate_password(first)
+            except ValidationError as error:
+                self.add_error("password1", error)
+        return cleaned
+
+    @staticmethod
+    def _username(email):
+        """Логин нужен Django, но пользователь может входить по почте."""
+        User = get_user_model()
+        local = email.split("@", 1)[0].strip() or "user"
+        candidate = email if len(email) <= 150 else f"user-{secrets.token_urlsafe(18)[:130]}"
+        if not User.objects.filter(username__iexact=candidate).exists():
+            return candidate
+        base = local[:120] or "user"
+        for _ in range(20):
+            candidate = f"{base}-{secrets.token_hex(4)}"[:150]
+            if not User.objects.filter(username__iexact=candidate).exists():
+                return candidate
+        return f"user-{secrets.token_urlsafe(24)[:140]}"
+
+    @transaction.atomic
+    def save(self):
+        User = get_user_model()
+        email = self.cleaned_data["email"]
+        user = User.objects.create_user(
+            username=self._username(email), email=email,
+            password=self.cleaned_data["password1"], is_active=False,
+        )
+        # «Без роли» — отдельное состояние, а не сотрудник по умолчанию.
+        # После подтверждения почты пользователь может войти, но тренировка
+        # и статистика откроются только после назначения администратором.
+        UserProfile.objects.create(
+            user=user, role=UserProfile.Role.UNASSIGNED,
+            display_name=self.cleaned_data.get("display_name", "").strip(),
+        )
+        return user
 
 class SandboxForm(forms.Form):
     exercise = forms.ModelChoiceField(label="Задание", queryset=Exercise.objects.all())

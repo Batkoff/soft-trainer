@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Регистрация — Тон{% endblock %}
+{% block content %}
+<div class="login-layout auth-layout">
+  <section class="login-intro">
+    <span class="brand-icon large">т</span>
+    <p class="eyebrow">НОВЫЙ АККАУНТ</p>
+    <h1>Войди в тон.</h1>
+    <p>Подтвердите почту, а затем дождитесь назначения роли руководителем.</p>
+  </section>
+  <section class="login-card form-card">
+    <h2>Регистрация</h2>
+    <p class="muted">Почта понадобится для входа и восстановления пароля.</p>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      {% if form.errors and not form.non_field_errors %}<div class="form-error">Проверьте поля формы.</div>{% endif %}
+      {{ form.as_p }}
+      <button class="button primary full" type="submit">Отправить письмо</button>
+    </form>
+    <p class="small muted">Новая учётная запись создаётся без роли и не получает доступ к заданиям до назначения администратором.</p>
+    <p class="small"><a href="{% url 'login' %}">Уже есть аккаунт? Войти</a></p>
+  </section>
+</div>
+{% endblock %}
