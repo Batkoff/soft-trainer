@@ -139,7 +139,7 @@ class HierarchyTests(TestCase):
         self.assertEqual(set(employee.fields["manager"].queryset), {self.leader, self.peer, self.outside})
         sector = TeamChangeForm(instance=self.sector)
         self.assertIsInstance(sector.fields["manager"].widget, forms.HiddenInput)
-        self.assertEqual(set(sector.fields["reports"].queryset), {self.leader, self.peer, self.outside})
+        self.assertEqual(set(sector.fields["reports"].queryset), {self.leader, self.peer})
         leader = TeamChangeForm(instance=self.leader)
         self.assertEqual(set(leader.fields["manager"].queryset), {self.sector, self.other_sector})
         self.assertNotIn(self.sector, leader.fields["reports"].queryset)
@@ -190,3 +190,39 @@ class HierarchyTests(TestCase):
         self.assertContains(response, f"/avatars/{self.employee.pk}/?v=photo-version")
         self.contest.refresh_from_db()
         self.assertEqual(self.contest.final_standings, original)
+
+    def test_occupied_people_must_be_released_before_transfer(self):
+        from .user_admin import TeamChangeForm
+        form = TeamChangeForm(instance=self.outside)
+        self.assertNotIn(self.employee, form.fields["reports"].queryset)
+        self.client.force_login(self.admin)
+        payload = {"username": self.employee.username, "role": "employee", "is_active": "on", "manager": self.outside.pk}
+        url = f"/admin/auth/user/{self.employee.pk}/change/"
+        response = self.client.post(url, payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("manager", response.context["adminform"].form.errors)
+        self.assertEqual(UserProfile.objects.get(user=self.employee).manager_id, self.leader.pk)
+        self.client.post("/admin/auth/user/", {"action": "release_users", "_selected_action": [self.employee.pk], "index": 0})
+        self.assertEqual(self.client.post(url, payload).status_code, 302)
+        self.assertEqual(UserProfile.objects.get(user=self.employee).manager_id, self.outside.pk)
+
+    def test_archive_people_with_attempts_and_bulk_actions(self):
+        self.client.force_login(self.admin)
+        page = self.client.get("/admin/auth/user/")
+        self.assertContains(page, 'name="_selected_action"')
+        self.assertNotContains(page, 'value="delete_selected"')
+        for person in [self.employee, self.leader, self.sector]:
+            url = f"/admin/auth/user/{person.pk}/delete/"
+            self.assertEqual(self.client.get(url).status_code, 200)
+            self.assertEqual(self.client.post(url, {"confirm_archive": "1"}).status_code, 302)
+            person.refresh_from_db()
+            self.assertFalse(person.is_active)
+        self.assertTrue(Attempt.objects.filter(pk=self.attempts[self.employee.pk].pk).exists())
+        self.assertIsNone(UserProfile.objects.get(user=self.peer).manager_id)
+        response = self.client.post("/admin/auth/user/", {"action": "archive_users", "_selected_action": [self.admin.pk, self.stranger.pk], "index": 0})
+        self.assertEqual(response.status_code, 200)
+        self.client.post("/admin/auth/user/", {"action": "archive_users", "_selected_action": [self.admin.pk, self.stranger.pk], "confirm_archive": "1"})
+        self.admin.refresh_from_db()
+        self.stranger.refresh_from_db()
+        self.assertTrue(self.admin.is_active)
+        self.assertFalse(self.stranger.is_active)

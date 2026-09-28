@@ -4,6 +4,8 @@ from django.utils import timezone
 from .releases import VERSION
 
 EVENT_TITLES = {
+    "user_archived": "Пользователь удалён из команды", "user_restored": "Доступ восстановлен",
+    "team_released": "Пользователь освобождён от руководителя",
     "team_updated": "Изменён состав команды", "team_assignment": "Назначен руководитель",
     "user_created": "Пользователь создан", "user_updated": "Пользователь изменён",
     "ai_settings_updated": "Изменены настройки нейросети",

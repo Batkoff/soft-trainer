@@ -7,6 +7,10 @@ from django.contrib.auth.models import User, Group
 from .people import ROLE_CHOICES, apply_role, user_role, display_name
 from .models import UserProfile
 from django.db.models import Q
+from django.db import transaction
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import redirect
+from django.template.response import TemplateResponse
 from .services import audit
 
 class PersonChoice(forms.ModelChoiceField):
@@ -35,13 +39,14 @@ class RoleFormMixin:
             self.fields["reports"].queryset = people.filter(Q(profile__role="employee") | Q(profile__isnull=True))
         else:
             self.fields["reports"].queryset = people.filter(profile__role=child_role) if child_role else people.none()
+        self.fields["reports"].queryset = self.fields["reports"].queryset.filter(Q(profile__manager__isnull=True) | Q(profile__manager_id=self.instance.pk))
         profile = getattr(self.instance, "profile", None)
         self.fields["manager"].initial = profile.manager_id if profile and parent_role else None
         self.fields["reports"].initial = list(self.instance.direct_reports.values_list("user_id", flat=True)) if self.instance.pk and child_role else []
         self.fields["unit_name"].initial = profile.unit_name if profile else ""
         self.fields["unit_name"].label = "Название сектора" if role == "sector_leader" else "Название группы"
         self.fields["manager"].help_text = ""
-        self.fields["reports"].help_text = "Перенос из другой команды выполняется при сохранении."
+        self.fields["reports"].help_text = "Доступны только свободные пользователи и уже назначенные вам. Для перевода сначала освободите пользователя в прежней группе."
         self.fields["reports"].label = "Сотрудники группы" if role == "group_leader" else "Руководители групп"
         # Не заменяем FilteredSelectMultiple: штатный виджет Django показывает
         # две колонки «доступные ↔ выбранные» и корректно отправляет выбранных.
@@ -71,6 +76,18 @@ class RoleFormMixin:
                 break
         if self.instance.pk and role != user_role(self.instance) and self.instance.direct_reports.exists():
             self.add_error("role", "Сначала переведите подчинённых к другому руководителю.")
+        # Блокировки живут до конца транзакции сохранения формы в Django admin.
+        # Повторная проверка защищает от двух одновременных назначений.
+        with transaction.atomic():
+            selected = list(cleaned.get("reports", []))
+            ids = sorted({p.pk for p in selected} | ({self.instance.pk} if self.instance.pk else set()))
+            list(User.objects.select_for_update(of=("self",)).filter(pk__in=ids).order_by("pk"))
+            current = UserProfile.objects.filter(user_id=self.instance.pk).first()
+            if current and current.manager_id and manager and current.manager_id != manager.pk:
+                self.add_error("manager", "Сначала освободите пользователя у текущего руководителя и сохраните карточку.")
+            occupied = UserProfile.objects.filter(user_id__in=[p.pk for p in selected], manager__isnull=False).exclude(manager_id=self.instance.pk)
+            if occupied.exists():
+                self.add_error("reports", "Пользователь уже назначен другому руководителю. Сначала освободите его.")
         return cleaned
 
 class TeamCreationForm(RoleFormMixin, UserCreationForm):
@@ -80,7 +97,7 @@ class TeamCreationForm(RoleFormMixin, UserCreationForm):
         help_text="Сотрудник → РГ; руководитель группы → РС. Можно назначить позже.")
     reports = PeopleChoice(label="Подчинённые", queryset=User.objects.none(), required=False,
         widget=admin.widgets.FilteredSelectMultiple("Подчинённые", is_stacked=False),
-        help_text="РГ: выберите сотрудников. РС: выберите РГ. Перенос из другой команды выполняется при сохранении.")
+        help_text="РГ: выберите сотрудников. РС: выберите РГ. Доступны только свободные пользователи и уже назначенные вам. Для перевода сначала освободите пользователя в прежней группе.")
 
     class Meta(UserCreationForm.Meta):
         model = User
@@ -93,7 +110,7 @@ class TeamChangeForm(RoleFormMixin, UserChangeForm):
         help_text="Сотрудник → РГ; руководитель группы → РС. Можно назначить позже.")
     reports = PeopleChoice(label="Подчинённые", queryset=User.objects.none(), required=False,
         widget=admin.widgets.FilteredSelectMultiple("Подчинённые", is_stacked=False),
-        help_text="РГ: выберите сотрудников. РС: выберите РГ. Перенос из другой команды выполняется при сохранении.")
+        help_text="РГ: выберите сотрудников. РС: выберите РГ. Доступны только свободные пользователи и уже назначенные вам. Для перевода сначала освободите пользователя в прежней группе.")
 
 
 admin.site.unregister(User)
@@ -115,10 +132,15 @@ class TeamAdmin(UserAdmin):
     )
     add_fieldsets = (("Новый сотрудник", {"fields": ("username", "first_name", "last_name", "email", "role", "unit_name", "manager", "reports", "password1", "password2")}),)
     filter_horizontal = ()
-    actions = None
+    actions = ("archive_users", "activate_users", "release_users")
 
     class Media:
         js = ("team-form.js",)
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions.pop("delete_selected", None)
+        return actions
 
     def get_form(self, request, obj=None, **kwargs):
         base = super().get_form(request, obj, **kwargs)
@@ -154,7 +176,57 @@ class TeamAdmin(UserAdmin):
         return request.user.is_superuser
 
     def has_delete_permission(self, request, obj=None):
-        return request.user.is_superuser and obj is not None and obj.pk != request.user.pk and not obj.is_superuser
+        return request.user.is_superuser and (obj is None or (obj.pk != request.user.pk and not obj.is_superuser))
+
+    @transaction.atomic
+    def archive_accounts(self, request, queryset):
+        people = list(queryset.select_for_update(of=("self",)).filter(is_superuser=False).exclude(pk=request.user.pk))
+        for person in people:
+            person.is_active = False
+            person.save(update_fields=["is_active"])
+            UserProfile.objects.filter(user=person).update(manager=None)
+            UserProfile.objects.filter(manager=person).update(manager=None)
+            audit(request.user, "user_archived", person, username=person.username)
+        self.message_user(request, f"Удалено из команды: {len(people)}. Доступ закрыт, результаты сохранены.")
+
+    def archive_confirmation(self, request, queryset, action=None):
+        people = queryset.filter(is_superuser=False).exclude(pk=request.user.pk)
+        if request.method == "POST" and request.POST.get("confirm_archive"):
+            self.archive_accounts(request, people)
+            return redirect("admin:auth_user_changelist")
+        return TemplateResponse(request, "admin/auth/user/archive.html", {
+            **self.admin_site.each_context(request), "title": "Удалить пользователей из команды",
+            "people": people, "action": action, "opts": self.model._meta,
+        })
+
+    def delete_view(self, request, object_id, extra_context=None):
+        obj = self.get_object(request, object_id)
+        if obj is None or not self.has_delete_permission(request, obj):
+            raise PermissionDenied
+        return self.archive_confirmation(request, User.objects.filter(pk=obj.pk))
+
+    @admin.action(description="Удалить из команды (сохранить результаты)")
+    def archive_users(self, request, queryset):
+        return self.archive_confirmation(request, queryset, "archive_users")
+
+    @admin.action(description="Восстановить доступ выбранным")
+    def activate_users(self, request, queryset):
+        people = queryset.filter(is_superuser=False)
+        with transaction.atomic():
+            for person in people.select_for_update(of=("self",)):
+                person.is_active = True
+                person.save(update_fields=["is_active"])
+                audit(request.user, "user_restored", person)
+        self.message_user(request, "Доступ восстановлен. При необходимости назначьте руководителя.")
+
+    @admin.action(description="Освободить от текущего руководителя")
+    def release_users(self, request, queryset):
+        with transaction.atomic():
+            people = list(queryset.select_for_update(of=("self",)).filter(is_superuser=False).order_by("pk"))
+            for person in people:
+                UserProfile.objects.filter(user=person).update(manager=None)
+                audit(request.user, "team_released", person)
+        self.message_user(request, f"Освобождено пользователей: {len(people)}.")
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)

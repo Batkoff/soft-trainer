@@ -62,7 +62,7 @@ def analytics(request):
 def team(request):
     if not is_manager(request.user):
         raise PermissionDenied
-    people = managed_users(request.user).exclude(pk=request.user.pk).select_related("profile__manager", "profile__manager__profile").order_by("first_name", "username")
+    people = managed_users(request.user).filter(is_active=True).exclude(pk=request.user.pk).select_related("profile__manager", "profile__manager__profile").order_by("first_name", "username")
     rows = [{"person": person, "name": display_name(person), "role": dict(ROLE_CHOICES)[user_role(person)],
              "unit": unit_names(person),
              "reports_count": managed_users(person).exclude(pk=person.pk).count() if not person.is_superuser else None,
