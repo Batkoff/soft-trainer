@@ -251,7 +251,7 @@ class HierarchyTests(TestCase):
             url = f"/admin/auth/user/{person.pk}/delete/"
             response = self.client.get(url)
             self.assertEqual(response.status_code, 302)
-            self.assertEqual(response.url, f"/team/{person.pk}/delete/")
+            self.assertEqual(response.url, f"/team/{person.pk}/delete/?return_to=admin")
             selection = {"action": "archive_users", "_selected_action": [person.pk], "index": 0}
             self.assertEqual(self.client.post("/admin/auth/user/", selection).status_code, 200)
             self.assertEqual(self.client.post("/admin/auth/user/", {**selection, "confirm_archive": "1"}).status_code, 302)
