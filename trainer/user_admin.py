@@ -133,6 +133,8 @@ class TeamAdmin(UserAdmin):
     add_fieldsets = (("Новый сотрудник", {"fields": ("username", "first_name", "last_name", "email", "role", "unit_name", "manager", "reports", "password1", "password2")}),)
     filter_horizontal = ()
     actions = ("archive_users", "activate_users", "release_users")
+    list_per_page = 10
+    list_max_show_all = 0
 
     class Media:
         js = ("team-form.js",)
@@ -187,7 +189,7 @@ class TeamAdmin(UserAdmin):
             UserProfile.objects.filter(user=person).update(manager=None)
             UserProfile.objects.filter(manager=person).update(manager=None)
             audit(request.user, "user_archived", person, username=person.username)
-        self.message_user(request, f"Удалено из команды: {len(people)}. Доступ закрыт, результаты сохранены.")
+        self.message_user(request, f"Доступ отключён: {len(people)}. Ответы и результаты сохранены.")
 
     def archive_confirmation(self, request, queryset, action=None):
         people = queryset.filter(is_superuser=False).exclude(pk=request.user.pk)
@@ -195,7 +197,7 @@ class TeamAdmin(UserAdmin):
             self.archive_accounts(request, people)
             return redirect("admin:auth_user_changelist")
         return TemplateResponse(request, "admin/auth/user/archive.html", {
-            **self.admin_site.each_context(request), "title": "Удалить пользователей из команды",
+            **self.admin_site.each_context(request), "title": "Отключить доступ к аккаунтам",
             "people": people, "action": action, "opts": self.model._meta,
         })
 
@@ -203,9 +205,9 @@ class TeamAdmin(UserAdmin):
         obj = self.get_object(request, object_id)
         if obj is None or not self.has_delete_permission(request, obj):
             raise PermissionDenied
-        return self.archive_confirmation(request, User.objects.filter(pk=obj.pk))
+        return redirect("team_delete", user_id=obj.pk)
 
-    @admin.action(description="Удалить из команды (сохранить результаты)")
+    @admin.action(description="Отключить доступ (сохранить историю)")
     def archive_users(self, request, queryset):
         return self.archive_confirmation(request, queryset, "archive_users")
 

@@ -117,7 +117,12 @@ def evaluate_attempt(attempt_id: str):
 @app.task(queue="maintenance", retry=3)
 def expire_attempt(attempt_id: str):
     from .services import finish_attempt
-    finish_attempt(attempt_id, expired=True)
+    try:
+        finish_attempt(attempt_id, expired=True)
+    except Attempt.DoesNotExist:
+        # Аккаунт и ответ могли быть удалены после подтверждения администратором.
+        # Просроченная отложенная задача в этом случае завершается без повтора.
+        return
 
 @app.periodic(cron="* * * * *")
 @app.task(queue="maintenance", retry=3)

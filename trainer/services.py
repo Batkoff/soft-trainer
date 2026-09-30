@@ -6,7 +6,8 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-from .models import Assignment, Attempt, AuditEvent, Contest, Exercise, Evaluation, default_rubric, demo_rubric
+from .models import (Assignment, Attempt, AuditEvent, CalibrationRun, Contest, Evaluation,
+                     EvaluationRecheck, EvaluationTrace, Exercise, UserProfile, default_rubric, demo_rubric)
 from .evaluation_profiles import profile_for_rubric, profile_has_key
 from .people import can_review, is_manager
 from .rechecks import pending_rechecks
@@ -15,6 +16,71 @@ MAX_ANSWER_LENGTH = 6000
 
 def audit(actor, action: str, obj, **details):
     AuditEvent.objects.create(actor=actor, action=action, object_id=str(obj.pk), details=details)
+
+
+@transaction.atomic
+def delete_user_account(actor, user_id):
+    """Удаляет аккаунт и персональные попытки после завершения фоновых задач."""
+    User = get_user_model()
+    if actor is None or not actor.is_superuser:
+        raise PermissionDenied
+    person = User.objects.select_for_update().get(pk=user_id)
+    if person.is_superuser or (actor and actor.pk == person.pk):
+        raise ValidationError("Нельзя удалить аккаунт администратора или свою учётную запись.")
+
+    attempts = Attempt.objects.select_for_update().filter(user=person)
+    active = attempts.exclude(status__in=[Attempt.Status.GRADED, Attempt.Status.REVIEW]).count()
+    active_rechecks = EvaluationRecheck.objects.filter(
+        attempt__user=person, status__in=["queued", "running", "retry"]
+    ).exists()
+    if active or active_rechecks:
+        raise ValidationError("Сначала дождитесь завершения открытых ответов и перепроверок.")
+
+    attempt_ids = list(attempts.values_list("pk", flat=True))
+    assignment_count = Assignment.objects.filter(user=person).count()
+    released_reports_count = UserProfile.objects.filter(manager=person).count()
+    if attempt_ids:
+        AuditEvent.objects.filter(object_id__in=[str(pk) for pk in attempt_ids]).update(
+            details={"record_deleted": True})
+        EvaluationRecheck.objects.filter(attempt_id__in=attempt_ids).delete()
+        CalibrationRun.objects.filter(attempt_id__in=attempt_ids).delete()
+        EvaluationTrace.objects.filter(attempt_id__in=attempt_ids).delete()
+        Evaluation.objects.filter(attempt_id__in=attempt_ids).delete()
+        attempts.delete()
+    Assignment.objects.filter(user=person).delete()
+
+    anonymized_ranks = 0
+    for contest in Contest.objects.filter(status=Contest.Status.FINISHED).only("pk", "final_standings").iterator():
+        changed = False
+        standings = []
+        for item in contest.final_standings or []:
+            row = dict(item)
+            if str(row.get("user_id")) == str(person.pk):
+                row.update(user_id=None, name="Удалённый участник", avatar_version="")
+                anonymized_ranks += 1
+                changed = True
+            standings.append(row)
+        if changed:
+            Contest.objects.filter(pk=contest.pk).update(final_standings=standings)
+
+    # Старые пользовательские события остаются для аудита, но не содержат имя,
+    # почту или отображаемый ник удалённого аккаунта.
+    identity_actions = ["user_archived", "user_restored", "team_released", "team_updated",
+                        "team_assignment", "user_created", "user_updated"]
+    for event in AuditEvent.objects.filter(object_id=str(person.pk), action__in=identity_actions):
+        details = dict(event.details)
+        for key in ("username", "email", "display_name"):
+            details.pop(key, None)
+        if details != event.details:
+            event.details = details
+            event.save(update_fields=["details"])
+
+    audit(actor, "account_deleted", person, attempts_deleted=len(attempt_ids),
+          assignments_deleted=assignment_count, archived_ranks_anonymized=anonymized_ranks,
+          reports_unassigned=released_reports_count)
+    person.delete()
+    return {"attempts": len(attempt_ids), "assignments": assignment_count,
+            "archived_ranks": anonymized_ranks}
 
 def check_answer(answer: str) -> str:
     if len(answer) > MAX_ANSWER_LENGTH:

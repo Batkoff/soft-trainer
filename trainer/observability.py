@@ -25,8 +25,13 @@ class RequestLogMiddleware:
         response = self.get_response(request)
         response["X-Request-ID"] = request.request_id
         if not request.path.startswith("/static/"):
+            path = request.path
+            for sensitive_prefix in ("/activate/", "/password-reset/"):
+                if path.startswith(sensitive_prefix):
+                    path = sensitive_prefix + "[redacted]/"
+                    break
             logging.getLogger("trainer.http").info("http_request", extra={"context": {
-                "request_id": request.request_id, "method": request.method, "path": request.path,
+                "request_id": request.request_id, "method": request.method, "path": path,
                 "status": response.status_code, "duration_ms": round((time.monotonic()-start)*1000),
                 "user_id": request.user.pk if request.user.is_authenticated else None,
             }})

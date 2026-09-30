@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Убрать из команды — Тон{% endblock %}
+{% block content %}
+<div class="breadcrumb"><a href="{% url 'team' %}">← Команда</a></div>
+<div class="page-heading"><div><p class="eyebrow">ИЗМЕНЕНИЕ КОМАНДЫ</p><h1>Убрать из команды?</h1><p class="muted">{{ name }} · {{ person.username }}</p></div></div>
+<section class="card form-card"><p>Связь с текущим руководителем будет снята. Аккаунт останется активным, а ответы, оценки и история конкурсов сохранятся. Администратор сможет назначить нового руководителя.</p>
+{% if direct_reports_count %}<p class="muted">Связи {{ direct_reports_count }} подчинённых с этим пользователем сохранятся.</p>{% endif %}
+<form method="post">{% csrf_token %}<div class="editor-actions"><a class="button" href="{% url 'team' %}">Отмена</a><button class="button primary" type="submit" name="confirm_remove" value="1">Убрать из команды</button></div></form></section>
+{% endblock %}

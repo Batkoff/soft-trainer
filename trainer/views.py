@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import math
 from datetime import timedelta
 from functools import wraps
 from django.conf import settings
@@ -8,6 +9,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.paginator import Paginator
 from django.db import connection, transaction
 from django.db.models import Avg, Count
 from django.http import HttpResponse, JsonResponse
@@ -21,6 +23,7 @@ from .reports import standings
 from . import services
 from .evaluation_profiles import profile_for_rubric
 from .people import can_review, is_manager, visible_users
+from .pagination import page_links
 from .releases import RELEASES
 
 def staff_required(view):
@@ -28,6 +31,16 @@ def staff_required(view):
     @login_required
     def wrapped(request, *args, **kwargs):
         if not is_manager(request.user):
+            raise PermissionDenied
+        return view(request, *args, **kwargs)
+    return wrapped
+
+
+def admin_required(view):
+    @wraps(view)
+    @login_required
+    def wrapped(request, *args, **kwargs):
+        if not request.user.is_superuser:
             raise PermissionDenied
         return view(request, *args, **kwargs)
     return wrapped
@@ -89,6 +102,13 @@ def contest_navigation(request, contest):
 def error_text(error):
     return "; ".join(error.messages)
 
+
+def duration_label(seconds):
+    minutes, remainder = divmod(seconds, 60)
+    if not minutes:
+        return f"{remainder} сек"
+    return f"{minutes} мин" if not remainder else f"{minutes} мин {remainder} сек"
+
 @login_required
 def home(request):
     contest = selected_contest(request)
@@ -112,6 +132,9 @@ def home(request):
     writing = next((a for a in daily if a.status == Attempt.Status.WRITING), None)
     total = attempts.filter(status=Attempt.Status.GRADED).aggregate(average=Avg("score"))
     row = next((r for r in standings(contest) if r["user_id"] == request.user.pk), None) if contest else None
+    recent = Paginator(attempts.exclude(status=Attempt.Status.WRITING), 10).get_page(request.GET.get("recent_page"))
+    time_limit_seconds = contest.time_limit_seconds if contest else 180
+    time_limit_label = duration_label(time_limit_seconds)
     return render(request, "trainer/home.html", {"contest": contest, **contest_navigation(request, contest),
         "slots": slots, "writing": writing, "today": today,
         "submitted": sum(a.status != Attempt.Status.WRITING for a in daily),
@@ -119,7 +142,8 @@ def home(request):
         "grading_unavailable": grading_unavailable,
         "can_start": not grading_unavailable and contest and contest.accepts_answers and contest.participants.filter(pk=request.user.pk).exists() and
             (writing or len(daily) < contest.daily_limit),
-        "recent": attempts.exclude(status=Attempt.Status.WRITING)[:8], "standing": row,
+        "recent": recent, "recent_page_links": page_links(request, recent, "recent_page"), "standing": row,
+        "time_limit_label": time_limit_label,
         "average": round(total["average"] or 0, 1), "nav": "training",
         "is_participant": bool(contest and contest.participants.filter(pk=request.user.pk).exists()),
         **({"grading_is_demo": profile_for_rubric(contest.rubric).get("provider") == "demo"} if contest else {})})
@@ -159,10 +183,16 @@ def attempt_page(request, attempt_id):
     recheck_pending = bool(recheck and recheck.status in ("queued", "running", "retry"))
     latest_review = AuditEvent.objects.filter(object_id=str(attempt.pk), action__in=["manual_review", "ai_recheck_completed"]).first()
     review = latest_review if latest_review and latest_review.action == "manual_review" else None
+    time_limit_seconds = attempt.contest.time_limit_seconds if attempt.contest_id else 180
+    time_limit_label = duration_label(time_limit_seconds)
+    server_now = timezone.now()
+    remaining = max(0, math.ceil((attempt.expires_at-server_now).total_seconds()))
+    timer_initial = f"{remaining // 60:02d}:{remaining % 60:02d}"
     return render(request, "trainer/attempt.html", {"attempt": attempt, "payload": payload, "skills": skills,
         "review": review, "recheck": recheck, "recheck_pending": recheck_pending, "skills_reviewed": bool(attempt.reviewed_skills),
+        "time_limit_label": time_limit_label, "timer_initial": timer_initial,
         "editable": attempt.user_id == request.user.pk, "can_review": can_review(request.user, attempt),
-        "nav": "training" if attempt.user_id == request.user.pk else "analytics", "server_now": timezone.now(),
+        "nav": "training" if attempt.user_id == request.user.pk else "analytics", "server_now": server_now,
         "grading_is_demo": payload.get("is_demo", profile_for_rubric(attempt.rubric).get("provider") == "demo")})
 
 def body_json(request):
@@ -224,15 +254,22 @@ def status(request, attempt_id):
 def leaderboard(request):
     contest = selected_contest(request)
     # Актуальное фото не меняет зафиксированные баллы и имена архивного конкурса.
-    rows = [dict(row) for row in standings(contest)] if contest else []
-    photos = dict(UserProfile.objects.filter(user_id__in=[r["user_id"] for r in rows]).values_list("user_id", "avatar_version"))
-    for row in rows:
+    all_rows = [dict(row) for row in standings(contest)] if contest else []
+    rows = all_rows[:10]
+    my_row = next((row for row in all_rows if row.get("user_id") == request.user.pk), None) if request.user.is_authenticated else None
+    if my_row and any(row.get("user_id") == my_row.get("user_id") for row in rows):
+        my_row = None
+    photo_ids = [row.get("user_id") for row in rows if row.get("user_id")]
+    if my_row and my_row.get("user_id"):
+        photo_ids.append(my_row["user_id"])
+    photos = dict(UserProfile.objects.filter(user_id__in=photo_ids).values_list("user_id", "avatar_version"))
+    for row in rows + ([my_row] if my_row else []):
         row["avatar_version"] = photos.get(row["user_id"], "")
     return render(request, "trainer/leaderboard.html", {"contest": contest, **contest_navigation(request, contest),
-        "rows": rows, "nav": "leaderboard",
+        "rows": rows, "my_row": my_row, "participant_count": len(all_rows), "nav": "leaderboard",
         **({"grading_is_demo": profile_for_rubric(contest.rubric).get("provider") == "demo"} if contest else {})})
 
-@staff_required
+@admin_required
 def sandbox(request):
     form = SandboxForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -241,8 +278,9 @@ def sandbox(request):
             return redirect("attempt", attempt_id=attempt.pk)
         except ValidationError as exc:
             form.add_error(None, error_text(exc))
-    return render(request, "trainer/sandbox.html", {"form": form, "nav": "sandbox",
-        "recent": Attempt.objects.filter(mode="sandbox", user=request.user)[:10]})
+    recent = Paginator(Attempt.objects.filter(mode="sandbox", user=request.user), 10).get_page(request.GET.get("page"))
+    return render(request, "trainer/sandbox.html", {"form": form, "nav": "sandbox", "recent": recent,
+        "page_links": page_links(request, recent)})
 
 @staff_required
 def review(request, attempt_id):
@@ -290,9 +328,12 @@ def profile(request):
             get_user_model().objects.filter(is_superuser=True, is_active=True).select_related("profile"))
     return render(request, "trainer/profile.html", {"form": form, "nav": "profile", "supervisors": supervisors, "unit_name": unit_names(request.user)})
 
-@staff_required
+@login_required
 def guide(request):
-    return render(request, "trainer/guide.html", {"nav": "guide"})
+    contest = selected_contest(request)
+    seconds = contest.time_limit_seconds if contest else None
+    time_limit_label = duration_label(seconds) if seconds else ""
+    return render(request, "trainer/guide.html", {"nav": "guide", "time_limit_label": time_limit_label})
 
 @login_required
 def updates(request):

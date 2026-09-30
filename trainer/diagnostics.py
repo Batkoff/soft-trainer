@@ -4,10 +4,18 @@ from django.utils import timezone
 from .releases import VERSION
 
 EVENT_TITLES = {
+    "registration_started": "Начата регистрация",
+    "registration_rejected": "Форма регистрации отклонена",
+    "registration_email_failed": "Не отправлено письмо подтверждения",
+    "registration_created": "Регистрация создана, письмо принято",
+    "registration_activated": "Почта подтверждена",
+    "registration_activation_rejected": "Ссылка подтверждения отклонена",
+    "account_deleted": "Аккаунт и ответы удалены",
+    "team_released": "Пользователь убран из команды",
     "ai_recheck_requested": "Запрошена перепроверка нейросетью",
     "ai_recheck_completed": "Оценка перепроверена нейросетью", "ai_recheck_error": "Ошибка перепроверки",
     "user_archived": "Пользователь удалён из команды", "user_restored": "Доступ восстановлен",
-    "team_released": "Пользователь освобождён от руководителя",
+    "team_released": "Пользователь убран из команды",
     "team_updated": "Изменён состав команды", "team_assignment": "Назначен руководитель",
     "user_created": "Пользователь создан", "user_updated": "Пользователь изменён",
     "ai_settings_updated": "Изменены настройки нейросети",
@@ -33,6 +41,8 @@ def event_title(event):
 
 
 def event_state(event):
+    if event.action in ("registration_email_failed", "registration_rejected", "registration_activation_rejected"):
+        return "failed", "Не выполнено"
     if event.action == "evaluation_error":
         return ("retry", "Сбой · назначен повтор") if event.details.get("status") == "retry" else ("failed", "Ошибка · нужен администратор")
     if event.details.get("status") == "review":

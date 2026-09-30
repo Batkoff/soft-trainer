@@ -1,22 +1,18 @@
-{% extends 'base.html' %}{% block title %}Нейросеть — Тон{% endblock %}{% block content %}
-<div class="page-heading"><div><p class="eyebrow">НАСТРОЙКИ ПРОЕКТА</p><h1>Нейросеть</h1><p class="muted">Подключите оценку ответов через OpenRouter или OpenAI. При необходимости все запросы к провайдеру можно отправлять через HTTP(S)-прокси.</p><a class="button small" href="{% url 'admin:trainer_evaluationprompt_changelist' %}">Редактировать промпт оценки</a></div></div>
+{% extends 'base.html' %}
+{% block title %}Нейросеть — Тон{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">НАСТРОЙКИ ПРОЕКТА</p><h1>Нейросеть</h1><p class="muted">Подключите оценку ответов через OpenRouter или OpenAI. При необходимости запросы можно отправлять через HTTP(S)-прокси.</p><a class="button small" href="{% url 'admin:trainer_evaluationprompt_changelist' %}">Редактировать промпт оценки</a></div></div>
 
 <section class="card form-card">
-<p>{% if key_present %}Ключ текущего провайдера сохранён.{% else %}Ключ текущего провайдера не настроен.{% endif %}
-{% if proxy_password_present %}<br>Пароль прокси сохранён и не отображается.{% endif %}</p>
-<form method="post" data-ai-settings>{% csrf_token %}{{ form.as_p }}
-<div class="form-actions">
-<button class="button primary" type="submit" name="action" value="save">Сохранить подключение</button>
-<button class="button" type="submit" name="action" value="test">Сохранить и проверить подключение</button>
-</div>
+<p>{% if key_present %}Ключ текущего провайдера сохранён.{% else %}Ключ текущего провайдера не настроен.{% endif %}{% if proxy_password_present %}<br>Пароль прокси сохранён и не отображается.{% endif %}</p>
+<form method="post" data-ai-settings class="ai-settings-form">{% csrf_token %}{{ form.non_field_errors }}
+{% for field in form %}{% if field.name == 'proxy_enabled' %}
+<div class="proxy-toggle-card"><div><strong>{{ field.label }}</strong><span class="helptext">Включите, чтобы направлять запросы к модели через заданный адрес прокси.</span>{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div><label class="proxy-switch" for="{{ field.id_for_label }}">{{ field }}<span class="proxy-switch-track" aria-hidden="true"></span><span class="sr-only">{{ field.label }}</span></label></div>
+{% else %}<div class="ai-field">{{ field.label_tag }}{{ field }}{% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% endif %}{% endfor %}
+<div class="form-actions"><button class="button primary" type="submit" name="action" value="save">Сохранить подключение</button><button class="button" type="submit" name="action" value="test">Сохранить и проверить подключение</button></div>
 </form>
 <p class="small muted">Проверка обращается к <strong>{{ check_host|default:"домену выбранного провайдера" }}</strong> без запуска оценки ответа. Если прокси включён, проверка и реальные запросы используют один и тот же маршрут.</p>
 </section>
 
-<section class="card form-card"><h2>Как работает прокси</h2>
-<p>Используется HTTP(S)-прокси с методом CONNECT: TLS-соединение до OpenRouter/OpenAI остаётся зашифрованным. В адресе укажите <code>http://host:port</code> или <code>https://host:port</code>; логин и пароль вводятся отдельно.</p>
-<p>После успешной проверки откройте песочницу и отправьте тестовый ответ — это уже проверит полный путь: очередь, запрос к модели и разбор JSON.</p>
-<a class="button" href="{% url 'sandbox' %}">Открыть песочницу →</a>
-<p>У действующих конкурсов модель закреплена в правилах. Прокси — инфраструктурная настройка и применяется к следующим API-запросам, в том числе к уже активным конкурсам.</p>
-<p class="small muted">API-ключ и пароль прокси хранятся зашифрованными. Сохраняйте резервную копию <code>.env</code> вместе с базой: <code>SECRET_KEY</code> нужен для расшифровки.</p></section>
+<section class="card form-card section"><h2>Как работает прокси</h2><p>Используется HTTP(S)-прокси с методом CONNECT: TLS-соединение до OpenRouter/OpenAI остаётся зашифрованным. В адресе укажите <code>http://host:port</code> или <code>https://host:port</code>; логин и пароль вводятся отдельно.</p><p>После успешной проверки откройте песочницу и отправьте тестовый ответ — это уже проверит полный путь: очередь, запрос к модели и разбор JSON.</p><a class="button" href="{% url 'sandbox' %}">Открыть песочницу →</a><p>У действующих конкурсов модель закреплена в правилах. Прокси — инфраструктурная настройка и применяется к следующим API-запросам, в том числе к уже активным конкурсам.</p><p class="small muted">API-ключ и пароль прокси хранятся зашифрованными. Сохраняйте резервную копию <code>.env</code> вместе с базой: <code>SECRET_KEY</code> нужен для расшифровки.</p></section>
 {% endblock %}

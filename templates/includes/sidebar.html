@@ -5,11 +5,12 @@
 <a href="{% url 'leaderboard' %}" class="ton-nav-link {% if nav == 'leaderboard' %}active{% endif %}"><span>↗</span>Рейтинг</a>
 <a href="{% url 'analytics' %}" class="ton-nav-link {% if nav == 'analytics' %}active{% endif %}"><span>◴</span>{% if team_access %}Статистика команды{% else %}Моя статистика{% endif %}</a>
 <a href="{% url 'profile' %}" class="ton-nav-link {% if nav == 'profile' %}active{% endif %}"><span>◎</span>Мой профиль</a>
+<a href="{% url 'guide' %}" class="ton-nav-link {% if nav == 'guide' %}active{% endif %}"><span>?</span>Как пользоваться</a>
 {% if team_access %}<p class="ton-nav-label">УПРАВЛЕНИЕ</p>
 <a href="{% url 'team' %}" class="ton-nav-link {% if nav == 'team' %}active{% endif %}"><span>♧</span>Команда</a>
+{% if user.is_superuser %}
 <a href="{% url 'sandbox' %}" class="ton-nav-link {% if nav == 'sandbox' %}active{% endif %}"><span>◇</span>Песочница</a>
-{% if user.is_superuser %}<a href="{% url 'ai_settings' %}" class="ton-nav-link {% if nav == 'ai' %}active{% endif %}"><span>✧</span>Нейросеть</a>
-<a href="{% url 'admin:index' %}" class="ton-nav-link {% if request.resolver_match.app_name == 'admin' %}active{% endif %}"><span>⚙</span>Админка</a>{% endif %}
-<a href="{% url 'guide' %}" class="ton-nav-link {% if nav == 'guide' %}active{% endif %}"><span>?</span>Как пользоваться</a>{% endif %}</nav>
+<a href="{% url 'ai_settings' %}" class="ton-nav-link {% if nav == 'ai' %}active{% endif %}"><span>✧</span>Нейросеть</a>
+<a href="{% url 'admin:index' %}" class="ton-nav-link {% if request.resolver_match.app_name == 'admin' %}active{% endif %}"><span>⚙</span>Админка</a>{% endif %}{% endif %}</nav>
 <div class="ton-sidebar-bottom"><a href="{% url 'updates' %}" class="ton-version">MLP · {{ app_version }}</a><div class="ton-user">{% include "includes/avatar.html" with person_id=user.pk photo_version=current_avatar_version name=current_display_name %}<div><strong>{{ current_display_name }}</strong><small>{{ current_role }}</small></div></div><form action="{% url 'logout' %}" method="post">{% csrf_token %}<button type="submit" class="ton-logout">Выйти из аккаунта</button></form></div>
 </aside>

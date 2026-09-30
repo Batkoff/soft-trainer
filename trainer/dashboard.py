@@ -6,14 +6,16 @@ from django.utils import timezone
 from .models import SKILLS
 
 
-def dashboard_data(graded):
+def dashboard_data(graded, chart_days=7):
     today = timezone.localdate()
-    first_day = today - timedelta(days=13)
+    if chart_days not in (7, 14, 30):
+        chart_days = 7
+    first_day = today - timedelta(days=chart_days - 1)
     recent = graded.filter(graded_at__date__gte=first_day, graded_at__date__lte=today)
     aggregates = {row["day"]: row for row in recent.annotate(day=TruncDate("graded_at"))
         .values("day").annotate(average=Avg("score"), count=Count("pk")).order_by("day")}
     days = []
-    for offset in range(14):
+    for offset in range(chart_days):
         day = first_day + timedelta(days=offset)
         row = aggregates.get(day)
         average = round(row["average"]) if row else None
@@ -39,5 +41,5 @@ def dashboard_data(graded):
                 values[key].append(value * 100 / scale)
     skills = [{"name": name, "average": round(sum(values[key])/len(values[key])) if values[key] else None,
                "count": len(values[key])} for key, name in SKILLS.items()]
-    return {"days": days, "bands": bands, "skills": skills, "total": total,
+    return {"days": days, "bands": bands, "skills": skills, "total": total, "chart_days": chart_days,
             "recent_count": sum(day["count"] for day in days)}

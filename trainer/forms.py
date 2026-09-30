@@ -147,7 +147,8 @@ class AIConfigurationForm(forms.Form):
     api_key = forms.CharField(label="Новый API-ключ", max_length=1000, required=False,
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
         help_text="Оставьте пустым, чтобы сохранить ключ выбранного провайдера.")
-    proxy_enabled = forms.BooleanField(label="Использовать прокси для запросов к нейросети", required=False)
+    proxy_enabled = forms.BooleanField(label="Использовать прокси для запросов к нейросети", required=False,
+        widget=forms.CheckboxInput(attrs={"class": "proxy-toggle-control"}))
     proxy_url = forms.CharField(label="HTTP(S)-прокси", max_length=500, required=False,
         widget=forms.URLInput(attrs={"placeholder": "http://proxy.example:3128"}),
         help_text="CONNECT-прокси. Укажите только схему, хост и порт; логин и пароль — ниже.")

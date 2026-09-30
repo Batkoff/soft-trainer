@@ -5,10 +5,11 @@
 {% if not editable %}{% include 'trainer/attempt_owner.html' %}{% endif %}
 <div class="page-heading compact">
   <div><p class="eyebrow">{% if attempt.mode == 'sandbox' %}ПЕСОЧНИЦА · БЕЗ РЕЙТИНГА{% else %}ЗАДАНИЕ {{ attempt.assignment.slot }} / {{ attempt.contest.daily_limit }}{% endif %}</p><h1>{{ attempt.snapshot.title }}</h1></div>
-  {% if attempt.status == 'writing' and editable %}<div class="timer" data-timer aria-live="off"><span>ОСТАЛОСЬ</span><strong>03:00</strong></div>
+  {% if attempt.status == 'writing' and editable %}<div class="timer" data-timer aria-live="off"><span>ОСТАЛОСЬ</span><strong>{{ timer_initial }}</strong></div>
   {% elif attempt.status == 'writing' %}<span class="badge writing">Приём до {{ attempt.expires_at|date:'H:i:s' }} МСК</span>
   {% else %}<span class="badge {{ attempt.status }}">{{ attempt.get_status_display }}</span>{% endif %}
 </div>
+{% if attempt.status == 'writing' and editable %}<div class="timer-guidance section" role="note"><strong>Таймер уже идёт: {{ time_limit_label }}.</strong> Он не останавливается, если закрыть вкладку. Черновик сохраняется автоматически; когда время выйдет, на проверку уйдёт последний сохранённый текст.</div>{% endif %}
 {% if attempt.status == 'writing' %}
 <div class="exercise-grid" id="editor" data-attempt="{{ attempt.pk }}" data-deadline="{{ attempt.expires_at|date:'c' }}" data-server-now="{{ server_now|date:'c' }}" data-revision="{{ attempt.draft_revision }}" data-editable="{{ editable|yesno:'true,false' }}">
   <section class="context-panel"><p class="eyebrow">КОНТЕКСТ</p><div class="customer-label"><span class="avatar client">К</span><span>Клиент</span></div><blockquote>{{ attempt.snapshot.customer_message }}</blockquote>

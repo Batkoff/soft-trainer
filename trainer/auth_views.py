@@ -1,4 +1,7 @@
 """Публичные страницы регистрации и подтверждения адреса."""
+import hashlib
+import hmac
+import logging
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -14,6 +17,27 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.views.decorators.http import require_http_methods
 
 from .forms import RegistrationForm
+from .models import AuditEvent
+
+logger = logging.getLogger("trainer.registration")
+
+
+def _registration_ref(email):
+    normalized = (email or "").strip().casefold()[:254]
+    if not normalized:
+        return "unknown"
+    return hmac.new(settings.SECRET_KEY.encode(), normalized.encode(), hashlib.sha256).hexdigest()[:24]
+
+
+def _registration_event(request, action, reference, **details):
+    AuditEvent.objects.create(actor=None, action=action, object_id=f"registration:{reference}",
+        details={"request_id": getattr(request, "request_id", ""), **details})
+
+
+class ActivationEmailError(Exception):
+    def __init__(self, cause_type):
+        super().__init__(cause_type)
+        self.cause_type = cause_type
 
 
 def _activation_url(request, user):
@@ -23,6 +47,8 @@ def _activation_url(request, user):
 
 
 def _send_activation_email(request, user):
+    if settings.EMAIL_BACKEND.endswith("smtp.EmailBackend") and not settings.EMAIL_HOST.strip():
+        raise ActivationEmailError("SMTP_HOST_NOT_CONFIGURED")
     activation_url = _activation_url(request, user)
     body = render_to_string("registration/activation_email.txt", {
         "user": user, "activation_url": activation_url,
@@ -44,19 +70,40 @@ def register(request):
     if request.user.is_authenticated:
         return redirect("home")
     form = RegistrationForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        user = None
+    if request.method == "POST":
+        if not form.is_valid():
+            reference = _registration_ref(form.data.get("email", ""))
+            _registration_event(request, "registration_rejected", reference,
+                                invalid_fields=sorted(form.errors.keys()))
+            return render(request, "registration/register.html", {"form": form})
+        reference = _registration_ref(form.cleaned_data["email"])
+        _registration_event(request, "registration_started", reference)
         try:
             with transaction.atomic():
                 user = form.save()
-                _send_activation_email(request, user)
-        except Exception:
-            # Не оставляем неактивную учётную запись, если SMTP недоступен:
-            # человек сможет повторить регистрацию после исправления .env.
-            if user is not None:
-                user.delete()
-            form.add_error(None, "Не удалось отправить письмо. Проверьте почту или обратитесь к администратору.")
+                try:
+                    _send_activation_email(request, user)
+                except ActivationEmailError:
+                    raise
+                except Exception as error:
+                    raise ActivationEmailError(type(error).__name__) from error
+        except ActivationEmailError as error:
+            smtp_configuration = {
+                "backend": settings.EMAIL_BACKEND.rsplit(".", 1)[-1],
+                "host_configured": bool(settings.EMAIL_HOST.strip()),
+                "sender_configured": bool(settings.DEFAULT_FROM_EMAIL.strip()),
+                "username_configured": bool(settings.EMAIL_HOST_USER.strip()),
+            }
+            _registration_event(request, "registration_email_failed", reference,
+                                exception_type=error.cause_type, smtp_configuration=smtp_configuration)
+            logger.warning("registration_email_failed", extra={"context": {
+                "request_id": getattr(request, "request_id", ""), "email_fingerprint": reference,
+                "exception_type": error.cause_type,
+            }})
+            request_id = getattr(request, "request_id", "не указан")
+            form.add_error(None, f"Не удалось отправить письмо. Аккаунт не создан. Попробуйте позже; если ошибка повторится, сообщите администратору код {request_id}.")
         else:
+            _registration_event(request, "registration_created", reference, user_id=user.pk)
             return render(request, "registration/check_email.html", {"email": user.email})
     return render(request, "registration/register.html", {"form": form})
 
@@ -72,6 +119,9 @@ def activate(request, uidb64, token):
     if user is not None and not user.is_active and default_token_generator.check_token(user, token):
         user.is_active = True
         user.save(update_fields=["is_active"])
+        _registration_event(request, "registration_activated", _registration_ref(user.email), user_id=user.pk)
         messages.success(request, "Почта подтверждена. Теперь войдите — роль и доступ к тренировке назначает администратор.")
         return redirect("login")
+    if user is not None:
+        _registration_event(request, "registration_activation_rejected", _registration_ref(user.email))
     return render(request, "registration/activation_invalid.html", status=400)

@@ -21,6 +21,8 @@ urlpatterns = [
     path("guide/", views.guide, name="guide"),
     path("updates/", views.updates, name="updates"),
     path("analytics/", team_views.analytics, name="analytics"),
+    path("team/<int:user_id>/remove/", team_views.remove_from_team, name="team_remove"),
+    path("team/<int:user_id>/delete/", team_views.delete_account, name="team_delete"),
     path("team/", team_views.team, name="team"),
     path("health/", views.health, name="health"),
 ]

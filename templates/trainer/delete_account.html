@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Удалить аккаунт — Тон{% endblock %}
+{% block content %}
+<div class="breadcrumb"><a href="{% url 'team' %}">← Команда</a></div>
+<div class="page-heading"><div><p class="eyebrow">УДАЛЕНИЕ АККАУНТА</p><h1>Удалить аккаунт?</h1><p class="muted">{{ name }} · {{ person.username }}</p></div></div>
+<section class="card form-card delete-account-card"><p>Это действие необратимо. Аккаунт, профиль, ответы, оценки и попытки пользователя будут удалены. В завершённых конкурсах место и баллы останутся в виде строки «Удалённый участник», без имени и связи с аккаунтом.</p>
+<ul class="small muted"><li>Ответов и попыток: {{ attempt_count }}</li><li>Назначений: {{ assignment_count }}</li><li>Строк в архивных рейтингах будут обезличены: {{ archived_ranks_count }}</li></ul>
+<p class="small muted">Если остались незавершённые ответы или перепроверки, дождитесь их завершения и повторите удаление. {% if direct_reports_count %}У {{ direct_reports_count }} подчинённых связь с этим руководителем будет снята.{% endif %} События аудита сохранятся без имени и почты.</p>
+<form method="post">{% csrf_token %}<label class="confirm-delete-check"><input type="checkbox" name="confirm_delete" value="1" required> Понимаю, что аккаунт и ответы будут удалены</label><div class="editor-actions"><a class="button" href="{% url 'team' %}">Отмена</a><button class="button danger" type="submit">Удалить аккаунт и ответы</button></div></form></section>
+{% endblock %}

@@ -24,6 +24,8 @@ class StatusAdminMixin:
         return format_html('<span class="admin-status admin-status-{}">{}</span>', obj.status, obj.get_status_display())
 
 class AuditAdmin(admin.ModelAdmin):
+    list_per_page = 10
+    list_max_show_all = 0
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
         services.audit(request.user, "admin_updated" if change else "admin_created", obj,
@@ -179,6 +181,8 @@ class ContestAdmin(StatusAdminMixin, AuditAdmin):
                 self.message_user(request, "; ".join(exc.messages), messages.ERROR)
 
 class ReadOnlyAdmin(admin.ModelAdmin):
+    list_per_page = 10
+    list_max_show_all = 0
     def has_add_permission(self, request):
         return False
     def has_change_permission(self, request, obj=None):

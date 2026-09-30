@@ -76,6 +76,42 @@ class HierarchyTests(TestCase):
         self.assertEqual(response.context["stats"]["graded"],1)
         self.assertEqual(self.client.get(f"/analytics/?person={self.employee.pk}").context["stats"]["graded"],1)
 
+    def test_analytics_defaults_to_current_contest_and_seven_day_graph(self):
+        past = Contest.objects.create(title="Завершённый конкурс", starts_at=timezone.now()-timedelta(days=20),
+            ends_at=timezone.now()-timedelta(days=10), status="finished", rubric=demo_rubric())
+        past.participants.add(self.employee)
+        assignment = Assignment.objects.create(contest=past, user=self.employee, exercise=self.exercise,
+            day=timezone.localdate()-timedelta(days=15), slot=1)
+        Attempt.objects.create(user=self.employee, contest=past, assignment=assignment, exercise=self.exercise,
+            snapshot=self.exercise.snapshot(), rubric=demo_rubric(), status="graded", score=80,
+            hard_verdict="passed", expires_at=timezone.now())
+        self.client.force_login(self.admin)
+        response = self.client.get("/analytics/")
+        self.assertEqual(response.context["contest"], self.contest)
+        self.assertEqual(response.context["stats"]["graded"], 3)
+        self.assertEqual(response.context["chart_days"], 7)
+        self.assertEqual(len(response.context["dashboard"]["days"]), 7)
+        self.assertEqual(response.context["recent"].paginator.per_page, 10)
+        response = self.client.get("/analytics/?contest=all&days=14")
+        self.assertIsNone(response.context["contest"])
+        self.assertTrue(response.context["show_all_contests"])
+        self.assertEqual(response.context["stats"]["graded"], 4)
+        self.assertEqual(response.context["chart_days"], 14)
+        self.assertEqual(len(response.context["dashboard"]["days"]), 14)
+        self.assertEqual(self.client.get("/analytics/?contest=all&days=90").context["chart_days"], 7)
+
+    def test_guide_is_for_every_user_and_sandbox_is_admin_only(self):
+        self.client.force_login(self.leader)
+        guide = self.client.get("/guide/")
+        self.assertEqual(guide.status_code, 200)
+        self.assertContains(guide, "Главное про таймер")
+        self.assertEqual(self.client.get("/sandbox/").status_code, 403)
+        self.client.force_login(self.employee)
+        self.assertEqual(self.client.get("/guide/").status_code, 200)
+        self.assertEqual(self.client.get("/sandbox/").status_code, 403)
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.get("/sandbox/").status_code, 200)
+
     def test_transfer_changes_access_immediately(self):
         attempt = self.attempts[self.employee.pk]
         self.assertTrue(can_review(self.leader, attempt))

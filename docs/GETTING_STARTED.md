@@ -98,6 +98,8 @@ DEFAULT_FROM_EMAIL=ваш-почтовый-адрес
 python3 scripts/start.py --host ton-practice.ru --port 80
 ```
 
+Если письмо не уходит, откройте админку → **«Журнал действий»** и найдите события **«Не отправлено письмо подтверждения»**. Запрос можно найти по коду на странице регистрации; журнал показывает тип ошибки и проверяет только наличие SMTP-хоста, отправителя и логина, без вывода их значений. После изменения `.env` снова выполните команду запуска.
+
 Файл `.env` уже исключён из Git. После публикации SMTP-пароля в чате или другом открытом месте его нужно заменить в почтовом кабинете.
 
 Ключ сохраняется зашифрованным. Храните резервную копию `.env` вместе с базой: `SECRET_KEY` нужен для расшифровки.
@@ -162,6 +164,31 @@ python3 scripts/start.py --host ton-practice.ru --port 80
 ```
 
 `docker compose stop` не удаляет базу и volumes. Не используйте `docker compose down -v`: `-v` удалит данные PostgreSQL. Ключи и пароли сохраняются, миграции применяются автоматически. Если стили в браузере старые — **Ctrl+F5**.
+
+## Полный сброс базы на VPS
+
+Это удалит учётные записи, ответы, оценки и историю. Сначала сделайте резервную копию базы и проверьте, что файл непустой:
+
+```bash
+cd /opt/soft-trainer
+umask 077
+mkdir -p /opt/soft-trainer-backups
+chmod 700 /opt/soft-trainer-backups
+backup_file="/opt/soft-trainer-backups/ton-$(date +%Y%m%d-%H%M%S).sql"
+docker compose exec -T db sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h 127.0.0.1 -U trainer trainer' > "$backup_file"
+test -s "$backup_file"
+```
+
+Остановите и удалите контейнеры, сохранив остальные volumes, затем удалите только том PostgreSQL. В `compose.yaml` проект и том называются `soft-trainer` и `database`:
+
+```bash
+docker compose down
+docker volume ls --filter name=soft-trainer_database
+docker volume rm soft-trainer_database
+python3 scripts/start.py --host ton-practice.ru --port 80
+```
+
+`scripts/start.py` создаст пустую базу, применит миграции и запустит `seed_demo`: появятся базовый администратор, демо-пользователи, задания и конкурс. Пароль администратора возьмётся из сохранённого `.env`; `.env` и резервная копия не должны попадать в Git или чат. Не запускайте эти команды на рабочем сайте без подтверждённого бэкапа.
 
 ## Если не запустилось
 

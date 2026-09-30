@@ -62,6 +62,15 @@ class PromptTests(TestCase):
         EvaluationPrompt.objects.all().delete()
         self.assertEqual(current_profile()["prompt_text"], SYSTEM_PROMPT)
 
+    def test_attached_markdown_is_the_new_default_and_fits_database_field(self):
+        from .evaluation_prompt import default_evaluation_prompt
+        prompt = default_evaluation_prompt()
+        self.assertEqual(EvaluationPrompt().text, prompt)
+        self.assertEqual(EvaluationPrompt().version, 6)
+        self.assertLessEqual(len(prompt), 20000)
+        self.assertIn("Простое копирование", prompt)
+        self.assertIn("Итоговый рейтинговый балл считает сервер", prompt)
+
     def test_admin_edit_permissions_validation_and_audit(self):
         EvaluationPrompt.objects.update_or_create(pk=1, defaults={"text": SYSTEM_PROMPT, "version": 3})
         staff = get_user_model().objects.create_user("leader", is_staff=True)
