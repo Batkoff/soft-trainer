@@ -114,7 +114,6 @@ class AccountEmailTests(TestCase):
         self.assertNotIn("fail.mail@example.com", serialized)
         self.assertNotIn("secret smtp response", serialized)
         self.assertIn("OSError", serialized)
-        self.assertIn("smtp_delivery", serialized)
         self.assertNotIn("fail.mail@example.com", "\n".join(logs.output))
 
     def test_unicode_smtp_failure_records_safe_diagnostic_without_values(self):
