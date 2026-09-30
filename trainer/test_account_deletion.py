@@ -39,7 +39,7 @@ class AccountRemovalTests(TestCase):
         self.client.force_login(self.leader)
         confirm = self.client.get(f"/team/{self.person.pk}/remove/")
         self.assertEqual(confirm.status_code, 200)
-        self.assertContains(confirm, "аккаунт останется активным")
+        self.assertContains(confirm, "Аккаунт останется активным")
         response = self.client.post(f"/team/{self.person.pk}/remove/", {"confirm_remove": "1"})
         self.assertRedirects(response, "/team/")
         self.person.refresh_from_db()
