@@ -3,7 +3,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
 from django.test import RequestFactory, SimpleTestCase
 
-from .observability import RequestLogMiddleware
+from .observability import JsonFormatter, RequestLogMiddleware
 
 
 class RequestPathRedactionTests(SimpleTestCase):
@@ -17,7 +17,7 @@ class RequestPathRedactionTests(SimpleTestCase):
             middleware = RequestLogMiddleware(lambda _request: HttpResponse("ok"))
             with self.assertLogs("trainer.http", level="INFO") as logs:
                 response = middleware(request)
-            serialized = "\n".join(logs.output)
+            serialized = JsonFormatter().format(logs.records[0])
             self.assertEqual(response["X-Request-ID"], request.request_id)
             self.assertIn(prefix, serialized)
             self.assertNotIn(secret, serialized)

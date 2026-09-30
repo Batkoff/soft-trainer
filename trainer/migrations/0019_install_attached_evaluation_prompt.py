@@ -311,7 +311,10 @@ PROMPT = (
 def install_prompt(apps, schema_editor):
     Prompt = apps.get_model("trainer", "EvaluationPrompt")
     existing = Prompt.objects.filter(pk=1).first()
-    version = max((existing.version + 1) if existing else 6, 6)
+    if existing and existing.text == PROMPT:
+        version = max(existing.version, 6)
+    else:
+        version = max((existing.version + 1) if existing else 6, 6)
     Prompt.objects.update_or_create(pk=1, defaults={"text": PROMPT, "version": version})
 
 

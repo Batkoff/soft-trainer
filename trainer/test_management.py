@@ -29,8 +29,9 @@ class ManagementTests(TestCase):
         self.client.force_login(self.leader)
         for path in ["/admin/auth/user/", "/admin/auth/user/add/", "/admin/trainer/exercise/add/", "/admin/trainer/contest/add/", "/admin/", "/admin/trainer/exercise/", "/admin/trainer/attempt/"]:
             self.assertEqual(self.client.get(path).status_code, 403, path)
-        for path in ["/analytics/", "/sandbox/", "/guide/"]:
+        for path in ["/analytics/", "/guide/"]:
             self.assertEqual(self.client.get(path).status_code, 200, path)
+        self.assertEqual(self.client.get("/sandbox/").status_code, 403)
         self.assertEqual(self.client.post(f"/admin/trainer/exercise/{self.exercise.pk}/new-version/").status_code, 403)
 
     def test_team_forms_show_expected_people_and_save_manager(self):

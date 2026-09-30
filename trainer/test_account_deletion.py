@@ -18,6 +18,7 @@ class AccountRemovalTests(TestCase):
         self.leader = User.objects.create_user("leader", password="test-leader-password")
         apply_role(self.leader, "group_leader")
         self.person = User.objects.create_user("person", email="person@example.test", password="test-person-password")
+        apply_role(self.person, "employee")
         UserProfile.objects.filter(user=self.person).update(manager=self.leader)
         self.exercise = Exercise.objects.create(title="Проверка", customer_message="Вопрос",
             hard_answer="Факт", required_facts="Факт")
@@ -107,6 +108,7 @@ class AccountRemovalTests(TestCase):
         User = get_user_model()
         for index in range(11):
             person = User.objects.create_user(f"extra-{index}", password="test-extra-password")
+            apply_role(person, "employee")
             profile, _ = UserProfile.objects.get_or_create(user=person)
             profile.manager = self.leader
             profile.save(update_fields=["manager"])

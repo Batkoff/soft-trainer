@@ -84,7 +84,7 @@ class ProfilePhotoTests(TestCase):
         from .evaluation_prompt import SYSTEM_PROMPT
         from .evaluation_profiles import current_profile
         from .evaluation_http import LiveEvaluator
-        migration = import_module("trainer.migrations.0016_profile_photos_and_prompt")
+        migration = import_module("trainer.migrations.0019_install_attached_evaluation_prompt")
         EvaluationPrompt.objects.update_or_create(pk=1, defaults={"text": "Прежние правила", "version": 9})
         with override_settings(ALLOW_TEST_EVALUATOR=False):
             snapshot = current_profile()
@@ -94,4 +94,4 @@ class ProfilePhotoTests(TestCase):
             self.assertEqual(LiveEvaluator(snapshot).system_prompt, "Прежние правила")
             migration.install_prompt(apps, SimpleNamespace(connection=connection))
             self.assertEqual(EvaluationPrompt.objects.get(pk=1).version, 10)
-        self.assertEqual(migration.NEW_PROMPT, SYSTEM_PROMPT)
+        self.assertEqual(migration.PROMPT, SYSTEM_PROMPT)

@@ -68,8 +68,9 @@ class PromptTests(TestCase):
         self.assertEqual(EvaluationPrompt().text, prompt)
         self.assertEqual(EvaluationPrompt().version, 6)
         self.assertLessEqual(len(prompt), 20000)
-        self.assertIn("Простое копирование", prompt)
-        self.assertIn("Итоговый рейтинговый балл считает сервер", prompt)
+        normalized = " ".join(prompt.split())
+        self.assertIn("Простое копирование", normalized)
+        self.assertIn("Итоговый рейтинговый балл считает сервер", normalized)
 
     def test_admin_edit_permissions_validation_and_audit(self):
         EvaluationPrompt.objects.update_or_create(pk=1, defaults={"text": SYSTEM_PROMPT, "version": 3})
