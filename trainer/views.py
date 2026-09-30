@@ -263,8 +263,11 @@ def leaderboard(request):
     if my_row and my_row.get("user_id"):
         photo_ids.append(my_row["user_id"])
     photos = dict(UserProfile.objects.filter(user_id__in=photo_ids).values_list("user_id", "avatar_version"))
+    from django.contrib.auth import get_user_model
+    usernames = dict(get_user_model().objects.filter(pk__in=photo_ids).values_list("pk", "username"))
     for row in rows + ([my_row] if my_row else []):
         row["avatar_version"] = photos.get(row["user_id"], "")
+        row["username"] = row.get("username") or usernames.get(row["user_id"], "")
     return render(request, "trainer/leaderboard.html", {"contest": contest, **contest_navigation(request, contest),
         "rows": rows, "my_row": my_row, "participant_count": len(all_rows), "nav": "leaderboard",
         **({"grading_is_demo": profile_for_rubric(contest.rubric).get("provider") == "demo"} if contest else {})})

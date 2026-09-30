@@ -36,6 +36,7 @@ class LeaderboardLimitTests(TestCase):
         self.assertEqual(response.context["participant_count"], 12)
         self.assertEqual(response.context["my_row"]["place"], 12)
         self.assertContains(response, "ТВОЯ ПОЗИЦИЯ")
+        self.assertContains(response, f"@{self.users[-1].username}")
         self.assertContains(response, "12")
         self.client.force_login(self.users[2])
         response = self.client.get("/leaderboard/")

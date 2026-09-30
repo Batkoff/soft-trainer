@@ -56,7 +56,7 @@ def delete_user_account(actor, user_id):
         for item in contest.final_standings or []:
             row = dict(item)
             if str(row.get("user_id")) == str(person.pk):
-                row.update(user_id=None, name="Удалённый участник", avatar_version="")
+                row.update(user_id=None, name="Удалённый участник", username="", avatar_version="")
                 anonymized_ranks += 1
                 changed = True
             standings.append(row)

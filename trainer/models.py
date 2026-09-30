@@ -348,7 +348,7 @@ class EvaluationPrompt(models.Model):
     """Одна текущая настройка; в профиле конкурса хранится неизменяемая копия."""
     from .evaluation_prompt import default_evaluation_prompt
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
-    version = models.PositiveSmallIntegerField("Версия", default=6, editable=False)
+    version = models.PositiveSmallIntegerField("Версия", default=7, editable=False)
     text = models.TextField("Текст промпта", default=default_evaluation_prompt, max_length=20000)
     updated_at = models.DateTimeField("Изменён", auto_now=True)
 

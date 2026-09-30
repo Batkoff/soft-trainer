@@ -519,11 +519,19 @@ thead th {
 }
 
 .paginator a:link, .paginator a:visited {
-  background:var(--ton-surface);
+  background:var(--ton-raised);
+  border:1px solid var(--ton-border);
   border-radius:7px;
-  color:var(--ton-accent);
+  color:var(--ton-muted);
   padding:6px 10px
 }
+
+#changelist .paginator a:hover {background:var(--ton-accent-soft);border-color:var(--ton-accent);color:var(--ton-text)}
+#changelist .paginator .this-page {display:inline-block;padding:6px 10px;border:1px solid var(--ton-accent);border-radius:7px;background:var(--ton-accent);color:var(--ton-on-accent);font-weight:700}
+
+body.model-evaluationtrace #changelist .results {max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
+body.model-evaluationtrace #changelist table {width:100%;min-width:1120px;table-layout:auto}
+body.model-evaluationtrace #changelist table th, body.model-evaluationtrace #changelist table td {white-space:nowrap}
 
 .object-tools {
   margin-bottom:18px

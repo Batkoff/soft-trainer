@@ -1,0 +1,11 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div class="module admin-confirm">
+  <h2>Удалить выбранные аккаунты?</h2>
+  <p>Аккаунты, профили, ответы, оценки и назначения будут удалены без возможности восстановления. Итоговые рейтинги будут обезличены. Аккаунты администраторов и ваша учётная запись не удаляются.</p>
+  <ul>{% for person in people %}<li>{{ person.get_full_name|default:person.username }} · {{ person.username }}</li>{% empty %}<li>Нет доступных аккаунтов для удаления.</li>{% endfor %}</ul>
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="{{ action }}">{% for person in people %}<input type="hidden" name="_selected_action" value="{{ person.pk }}">{% endfor %}
+    <div class="submit-row"><button type="submit" name="confirm_delete" value="1"{% if not people %} disabled{% endif %}>Удалить аккаунты и ответы</button><a class="cancel-link" href="{% url 'admin:auth_user_changelist' %}">Отменить</a></div>
+  </form>
+</div>
+{% endblock %}

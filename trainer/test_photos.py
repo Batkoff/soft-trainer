@@ -75,7 +75,7 @@ class ProfilePhotoTests(TestCase):
             self.assertEqual(profile.display_name, "До")
             self.assertEqual(bytes(profile.avatar_data), original)
 
-    def test_prompt_migration_updates_existing_settings_and_preserves_snapshot(self):
+    def test_prompt_migration_updates_only_the_previous_default_and_preserves_snapshot(self):
         from importlib import import_module
         from types import SimpleNamespace
         from django.apps import apps
@@ -84,14 +84,17 @@ class ProfilePhotoTests(TestCase):
         from .evaluation_prompt import SYSTEM_PROMPT
         from .evaluation_profiles import current_profile
         from .evaluation_http import LiveEvaluator
-        migration = import_module("trainer.migrations.0019_install_attached_evaluation_prompt")
-        EvaluationPrompt.objects.update_or_create(pk=1, defaults={"text": "Прежние правила", "version": 9})
+        previous_migration = import_module("trainer.migrations.0019_install_attached_evaluation_prompt")
+        migration = import_module("trainer.migrations.0020_customer_request_prompt")
+        EvaluationPrompt.objects.update_or_create(pk=1, defaults={"text": previous_migration.PROMPT, "version": 6})
         with override_settings(ALLOW_TEST_EVALUATOR=False):
             snapshot = current_profile()
-            migration.install_prompt(apps, SimpleNamespace(connection=connection))
+            migration.update_default_prompt(apps, SimpleNamespace(connection=connection))
             self.assertEqual(current_profile()["prompt_text"], SYSTEM_PROMPT)
-            self.assertEqual(current_profile()["prompt_version"], "soft-v10")
-            self.assertEqual(LiveEvaluator(snapshot).system_prompt, "Прежние правила")
-            migration.install_prompt(apps, SimpleNamespace(connection=connection))
-            self.assertEqual(EvaluationPrompt.objects.get(pk=1).version, 10)
-        self.assertEqual(migration.PROMPT, SYSTEM_PROMPT)
+            self.assertEqual(current_profile()["prompt_version"], "soft-v7")
+            self.assertEqual(LiveEvaluator(snapshot).system_prompt, previous_migration.PROMPT)
+            migration.update_default_prompt(apps, SimpleNamespace(connection=connection))
+            self.assertEqual(EvaluationPrompt.objects.get(pk=1).version, 7)
+        EvaluationPrompt.objects.update_or_create(pk=1, defaults={"text": "Собственные правила", "version": 9})
+        migration.update_default_prompt(apps, SimpleNamespace(connection=connection))
+        self.assertEqual(EvaluationPrompt.objects.get(pk=1).text, "Собственные правила")

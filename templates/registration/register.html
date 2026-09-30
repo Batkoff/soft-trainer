@@ -13,7 +13,6 @@
     <p class="muted">Почта понадобится для входа и восстановления пароля.</p>
     <form method="post" novalidate>
       {% csrf_token %}
-      {{ form.non_field_errors }}
       {% if form.errors and not form.non_field_errors %}<div class="form-error">Проверьте поля формы.</div>{% endif %}
       {{ form.as_p }}
       <button class="button primary full" type="submit">Отправить письмо</button>

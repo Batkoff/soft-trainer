@@ -107,10 +107,29 @@ class AccountEmailTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Аккаунт не создан")
         self.assertContains(response, response["X-Request-ID"])
+        self.assertEqual(response.content.decode().count(response["X-Request-ID"]), 1)
         self.assertFalse(get_user_model().objects.filter(email="fail.mail@example.com").exists())
         event = AuditEvent.objects.get(action="registration_email_failed")
         serialized = json.dumps(event.details)
         self.assertNotIn("fail.mail@example.com", serialized)
         self.assertNotIn("secret smtp response", serialized)
         self.assertIn("OSError", serialized)
+        self.assertIn("smtp_delivery", serialized)
         self.assertNotIn("fail.mail@example.com", "\n".join(logs.output))
+
+    def test_unicode_smtp_failure_records_safe_diagnostic_without_values(self):
+        with override_settings(EMAIL_HOST_USER="почта", EMAIL_HOST_PASSWORD="секрет"):
+            error = UnicodeEncodeError("ascii", "секрет", 0, 1, "ordinal not in range(128)")
+            with patch("trainer.auth_views.send_mail", side_effect=error):
+                response = self.client.post(reverse("register"), {
+                    "email": "ascii-recipient@example.com",
+                    "password1": "long-registration-password-123",
+                    "password2": "long-registration-password-123",
+                })
+        self.assertEqual(response.status_code, 200)
+        event = AuditEvent.objects.get(action="registration_email_failed")
+        diagnostic = json.dumps(event.details)
+        self.assertIn("smtp_delivery", diagnostic)
+        self.assertIn("smtp_password", diagnostic)
+        self.assertIn("ascii", diagnostic)
+        self.assertNotIn("секрет", diagnostic)

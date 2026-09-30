@@ -35,9 +35,28 @@ def _registration_event(request, action, reference, **details):
 
 
 class ActivationEmailError(Exception):
-    def __init__(self, cause_type):
+    def __init__(self, cause_type, stage="unknown", safe_metadata=None):
         super().__init__(cause_type)
         self.cause_type = cause_type
+        self.stage = stage
+        self.safe_metadata = safe_metadata or {}
+
+
+def _safe_email_failure_metadata(error):
+    if isinstance(error, UnicodeEncodeError):
+        return {"encoding": error.encoding, "reason": error.reason,
+                "start": error.start, "end": error.end}
+    return {}
+
+
+def _non_ascii_email_settings(email):
+    values = {
+        "smtp_username": settings.EMAIL_HOST_USER,
+        "smtp_password": settings.EMAIL_HOST_PASSWORD,
+        "sender_address": settings.DEFAULT_FROM_EMAIL,
+        "recipient_address": email,
+    }
+    return sorted(name for name, value in values.items() if value and not value.isascii())
 
 
 def _activation_url(request, user):
@@ -48,20 +67,28 @@ def _activation_url(request, user):
 
 def _send_activation_email(request, user):
     if settings.EMAIL_BACKEND.endswith("smtp.EmailBackend") and not settings.EMAIL_HOST.strip():
-        raise ActivationEmailError("SMTP_HOST_NOT_CONFIGURED")
-    activation_url = _activation_url(request, user)
-    body = render_to_string("registration/activation_email.txt", {
-        "user": user, "activation_url": activation_url,
-    })
-    sent = send_mail(
-        "Подтвердите почту — Тон",
-        body,
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
-        fail_silently=False,
-    )
+        raise ActivationEmailError("SMTP_HOST_NOT_CONFIGURED", "smtp_configuration")
+    try:
+        activation_url = _activation_url(request, user)
+        body = render_to_string("registration/activation_email.txt", {
+            "user": user, "activation_url": activation_url,
+        })
+    except Exception as error:
+        raise ActivationEmailError(type(error).__name__, "message_rendering",
+                                   _safe_email_failure_metadata(error)) from error
+    try:
+        sent = send_mail(
+            "Подтвердите почту — Тон",
+            body,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+    except Exception as error:
+        raise ActivationEmailError(type(error).__name__, "smtp_delivery",
+                                   _safe_email_failure_metadata(error)) from error
     if sent != 1:
-        raise RuntimeError("SMTP не принял письмо")
+        raise ActivationEmailError("SMTP_NO_MESSAGE_ACCEPTED", "smtp_delivery")
     return sent
 
 
@@ -95,10 +122,14 @@ def register(request):
                 "username_configured": bool(settings.EMAIL_HOST_USER.strip()),
             }
             _registration_event(request, "registration_email_failed", reference,
-                                exception_type=error.cause_type, smtp_configuration=smtp_configuration)
+                                exception_type=error.cause_type, failure_stage=error.stage,
+                                exception_metadata=error.safe_metadata,
+                                non_ascii_components=_non_ascii_email_settings(form.cleaned_data["email"]),
+                                smtp_configuration=smtp_configuration)
             logger.warning("registration_email_failed", extra={"context": {
                 "request_id": getattr(request, "request_id", ""), "email_fingerprint": reference,
-                "exception_type": error.cause_type,
+                "exception_type": error.cause_type, "failure_stage": error.stage,
+                "non_ascii_components": _non_ascii_email_settings(form.cleaned_data["email"]),
             }})
             request_id = getattr(request, "request_id", "не указан")
             form.add_error(None, f"Не удалось отправить письмо. Аккаунт не создан. Попробуйте позже; если ошибка повторится, сообщите администратору код {request_id}.")

@@ -67,6 +67,7 @@ class ContestLifecycleTests(TestCase):
         self.assertEqual(result.status, "finished")
         self.assertIsNotNone(result.finalized_at)
         self.assertEqual(len(result.final_standings), 2)
+        self.assertIn(self.user.username, {row["username"] for row in result.final_standings})
 
     @override_settings(ALLOW_TEST_EVALUATOR=True, DEMO_PASSWORD="test-demo-password")
     def test_seed_on_update_does_not_change_archived_demo(self):
@@ -115,6 +116,13 @@ class ContestLifecycleTests(TestCase):
         self.assertContains(archived, "эта таблица больше не меняется")
         self.assertTrue(archived.context["archive_mode"])
         self.assertEqual(self.client.get("/leaderboard/?archive=1").context["contest"].pk, self.contest.pk)
+
+    def test_guide_uses_the_selected_contest_time_limit(self):
+        Contest.objects.filter(pk=self.contest.pk).update(time_limit_seconds=420)
+        self.client.force_login(self.user)
+        response = self.client.get("/guide/")
+        self.assertContains(response, "сейчас 7 мин")
+        self.assertNotContains(response, "сейчас 3 мин")
 
     def test_only_archived_contest_does_not_look_current(self):
         close_contest_early(self.admin, self.contest.pk)

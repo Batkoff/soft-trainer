@@ -69,12 +69,15 @@ class AccountRemovalTests(TestCase):
             object_id=str(attempt.pk), details={"reason": "Ответ person@example.test проверен"})
 
         self.client.force_login(self.admin)
-        page = self.client.get(f"/team/{self.person.pk}/delete/")
+        redirect_response = self.client.get(f"/admin/auth/user/{self.person.pk}/delete/")
+        self.assertRedirects(redirect_response, f"/team/{self.person.pk}/delete/?return_to=admin")
+        confirm_url = redirect_response.url
+        page = self.client.get(confirm_url)
         self.assertContains(page, "Аккаунт, профиль, ответы, оценки и попытки пользователя будут удалены")
-        self.client.post(f"/team/{self.person.pk}/delete/", {})
+        self.client.post(confirm_url, {})
         self.assertTrue(get_user_model().objects.filter(pk=self.person.pk).exists())
-        response = self.client.post(f"/team/{self.person.pk}/delete/", {"confirm_delete": "1"})
-        self.assertRedirects(response, "/team/")
+        response = self.client.post(confirm_url, {"confirm_delete": "1"})
+        self.assertRedirects(response, "/admin/auth/user/")
         self.assertFalse(get_user_model().objects.filter(pk=self.person.pk).exists())
         self.assertFalse(Attempt.objects.filter(pk=attempt.pk).exists())
         self.assertFalse(Assignment.objects.filter(user_id=self.person.pk).exists())
@@ -86,6 +89,7 @@ class AccountRemovalTests(TestCase):
         self.contest.refresh_from_db()
         self.assertEqual(self.contest.final_standings[0]["user_id"], None)
         self.assertEqual(self.contest.final_standings[0]["name"], "Удалённый участник")
+        self.assertEqual(self.contest.final_standings[0]["username"], "")
         old_user_event.refresh_from_db()
         self.assertNotIn("email", old_user_event.details)
         self.assertIsNone(old_attempt_event.__class__.objects.get(pk=old_attempt_event.pk).actor_id)
@@ -103,6 +107,33 @@ class AccountRemovalTests(TestCase):
         self.assertTrue(get_user_model().objects.filter(pk=self.person.pk).exists())
         response = self.client.get("/team/")
         self.assertContains(response, "Сначала дождитесь завершения открытых ответов")
+
+    def test_group_and_sector_leaders_cannot_delete_accounts(self):
+        sector = get_user_model().objects.create_user("sector", password="test-sector-password")
+        apply_role(sector, "sector_leader")
+        UserProfile.objects.filter(user=self.leader).update(manager=sector)
+        for manager in (self.leader, sector):
+            self.client.force_login(manager)
+            self.assertEqual(self.client.get(f"/team/{self.person.pk}/delete/").status_code, 403)
+            self.assertEqual(self.client.post(f"/team/{self.person.pk}/delete/", {"confirm_delete": "1"}).status_code, 403)
+            self.assertNotContains(self.client.get("/team/"), "Удалить аккаунт")
+        self.assertTrue(get_user_model().objects.filter(pk=self.person.pk).exists())
+
+    def test_admin_bulk_action_confirms_and_deletes_selected_account(self):
+        self.make_attempt()
+        self.client.force_login(self.admin)
+        first = self.client.post("/admin/auth/user/", {
+            "action": "delete_accounts", "index": "0", "_selected_action": [str(self.person.pk)],
+        })
+        self.assertEqual(first.status_code, 200)
+        self.assertContains(first, "Удалить выбранные аккаунты")
+        confirm = self.client.post("/admin/auth/user/", {
+            "action": "delete_accounts", "index": "0", "confirm_delete": "1",
+            "_selected_action": [str(self.person.pk)],
+        })
+        self.assertRedirects(confirm, "/admin/auth/user/")
+        self.assertFalse(get_user_model().objects.filter(pk=self.person.pk).exists())
+        self.assertTrue(AuditEvent.objects.filter(action="account_deleted", object_id=str(self.person.pk)).exists())
 
     def test_team_list_is_paginated_by_ten(self):
         User = get_user_model()

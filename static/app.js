@@ -14,6 +14,44 @@ async function requestJSON(url, body) {
 for (const select of document.querySelectorAll("[data-auto-submit]")) {
   select.addEventListener("change", () => select.form.requestSubmit());
 }
+
+const eyeIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+const eyeOffIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 5.2A10.7 10.7 0 0 1 12 5c6.4 0 10 7 10 7a14 14 0 0 1-3.1 3.8M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7c1 0 2-.2 2.8-.5"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg>';
+for (const input of document.querySelectorAll('input[type="password"]')) {
+  if (input.dataset.passwordReveal === "ready") continue;
+  input.dataset.passwordReveal = "ready";
+  const field = document.createElement("span");
+  field.className = "password-field";
+  input.parentNode.insertBefore(field, input);
+  field.appendChild(input);
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "password-toggle";
+  toggle.setAttribute("aria-controls", input.id || "");
+  toggle.setAttribute("aria-label", "Показать пароль");
+  toggle.setAttribute("aria-pressed", "false");
+  toggle.innerHTML = eyeIcon;
+  toggle.addEventListener("click", () => {
+    const visible = input.type === "password";
+    input.type = visible ? "text" : "password";
+    toggle.setAttribute("aria-label", visible ? "Скрыть пароль" : "Показать пароль");
+    toggle.setAttribute("aria-pressed", String(visible));
+    toggle.innerHTML = visible ? eyeOffIcon : eyeIcon;
+    input.focus();
+  });
+  field.appendChild(toggle);
+}
+
+for (const fillButton of document.querySelectorAll("[data-fill-hard-answer]")) {
+  const answer = document.querySelector("#answer");
+  if (!answer || answer.readOnly) continue;
+  fillButton.addEventListener("click", () => {
+    answer.value = fillButton.dataset.hardAnswer || "";
+    answer.dispatchEvent(new Event("input", {bubbles:true}));
+    answer.focus();
+  });
+}
+
 const editor = document.querySelector("#editor");
 if (editor && editor.dataset.editable === "true") {
   const id = editor.dataset.attempt, base = `/attempts/${id}/`;

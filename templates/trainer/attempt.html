@@ -13,7 +13,7 @@
 {% if attempt.status == 'writing' %}
 <div class="exercise-grid" id="editor" data-attempt="{{ attempt.pk }}" data-deadline="{{ attempt.expires_at|date:'c' }}" data-server-now="{{ server_now|date:'c' }}" data-revision="{{ attempt.draft_revision }}" data-editable="{{ editable|yesno:'true,false' }}">
   <section class="context-panel"><p class="eyebrow">КОНТЕКСТ</p><div class="customer-label"><span class="avatar client">К</span><span>Клиент</span></div><blockquote>{{ attempt.snapshot.customer_message }}</blockquote>
-    <div class="hard-block"><span class="eyebrow">ЧТО НУЖНО СООБЩИТЬ</span><p>{{ attempt.snapshot.hard_answer }}</p><span class="small muted">Сохраните факты, условия и ограничения.</span></div>
+    <div class="hard-block"><span class="eyebrow">ЧТО НУЖНО СООБЩИТЬ</span><p>{{ attempt.snapshot.hard_answer }}</p><span class="small muted">Это проверенный фактический каркас. Ответьте на каждый вопрос клиента и сохраните смысл его обращения.</span>{% if editable %}<button type="button" class="button small hard-answer-fill" data-fill-hard-answer data-hard-answer="{{ attempt.snapshot.hard_answer }}">Подставить исходный ответ</button>{% endif %}</div>
   </section>
   <section class="editor-panel"><label for="answer"><span class="eyebrow">{% if editable %}ВАШ ОТВЕТ КЛИЕНТУ{% else %}ЧЕРНОВИК СОТРУДНИКА{% endif %}</span></label><p class="muted small">{% if editable %}Перепишите исходный ответ своими словами.{% else %}Сотрудник ещё пишет ответ. Здесь показан последний сохранённый черновик.{% endif %}</p>
     <form id="answer-form">{% csrf_token %}<textarea name="answer" id="answer" maxlength="6000" placeholder="Напишите так, как ответили бы клиенту…" {% if not editable %}readonly{% endif %}>{{ attempt.answer }}</textarea>

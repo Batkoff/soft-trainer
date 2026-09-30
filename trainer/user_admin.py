@@ -1,6 +1,6 @@
 """Управление командой без выбора десятков разрешений Django."""
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth.models import User, Group
@@ -8,10 +8,10 @@ from .people import ROLE_CHOICES, apply_role, user_role, display_name
 from .models import UserProfile
 from django.db.models import Q
 from django.db import transaction
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
-from .services import audit
+from .services import audit, delete_user_account
 
 class PersonChoice(forms.ModelChoiceField):
     def label_from_instance(self, obj):
@@ -132,7 +132,7 @@ class TeamAdmin(UserAdmin):
     )
     add_fieldsets = (("Новый сотрудник", {"fields": ("username", "first_name", "last_name", "email", "role", "unit_name", "manager", "reports", "password1", "password2")}),)
     filter_horizontal = ()
-    actions = ("archive_users", "activate_users", "release_users")
+    actions = ("archive_users", "activate_users", "release_users", "delete_accounts")
     list_per_page = 10
     list_max_show_all = 0
 
@@ -205,7 +205,28 @@ class TeamAdmin(UserAdmin):
         obj = self.get_object(request, object_id)
         if obj is None or not self.has_delete_permission(request, obj):
             raise PermissionDenied
-        return redirect("team_delete", user_id=obj.pk)
+        return redirect(f"/team/{obj.pk}/delete/?return_to=admin")
+
+    @admin.action(description="Удалить аккаунты и ответы без возможности восстановления")
+    def delete_accounts(self, request, queryset):
+        people = list(queryset.filter(is_superuser=False).exclude(pk=request.user.pk).order_by("pk"))
+        if request.POST.get("confirm_delete") == "1":
+            deleted = 0
+            for person in people:
+                try:
+                    delete_user_account(request.user, person.pk)
+                    deleted += 1
+                except ValidationError as error:
+                    self.message_user(request, f"{person.username}: {'; '.join(error.messages)}", messages.ERROR)
+            if deleted:
+                self.message_user(request, f"Удалено аккаунтов: {deleted}.")
+            if not people:
+                self.message_user(request, "Нет доступных для удаления аккаунтов.", messages.WARNING)
+            return redirect("admin:auth_user_changelist")
+        return TemplateResponse(request, "admin/auth/user/delete_selected.html", {
+            **self.admin_site.each_context(request), "title": "Удалить выбранные аккаунты",
+            "people": people, "action": "delete_accounts", "opts": self.model._meta,
+        })
 
     @admin.action(description="Отключить доступ (сохранить историю)")
     def archive_users(self, request, queryset):

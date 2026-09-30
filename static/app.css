@@ -16,6 +16,8 @@
 
 body {
   margin:0;
+  max-width:100%;
+  overflow-x:clip;
   background:var(--bg);
   color:var(--ink);
   font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif
@@ -274,6 +276,7 @@ p+p {
 
 .workspace {
   margin-left:242px;
+  min-width:0;
   min-height:100vh
 }
 
@@ -479,14 +482,14 @@ footer {
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  gap:24px;
+  gap:10px;
   background:var(--ton-surface);
   border:1px solid var(--ton-border);
-  padding:12px 19px;
-  border-radius:11px;
+  padding:10px 16px;
+  border-radius:10px;
   font-weight:600;
   font-size:14px;
-  min-height:46px;
+  min-height:44px;
   text-align:center;
   color:var(--ink)
 }
@@ -508,7 +511,7 @@ footer {
 
 .button.small {
   padding:5px 13px;
-  min-height:32px;
+  min-height:34px;
   font-size:13px
 }
 
@@ -2212,3 +2215,22 @@ footer {display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
 .confirm-delete-check {display:flex!important;align-items:center;gap:10px;margin:22px 0!important;color:var(--ton-text)}
 .confirm-delete-check input[type=checkbox] {width:18px;min-height:18px;height:18px;margin:0;accent-color:var(--ton-accent)}
 @media(max-width:700px){.personal-position-content{align-items:flex-start;gap:15px}.personal-position-stats{gap:12px}.team-row-actions{min-width:0}.page-pagination{align-items:flex-start;flex-direction:column}}
+
+/* Узкая ширина остаётся у страницы; прокрутка нужна только таблицам внутри карточек. */
+html,body {width:100%;max-width:100%;overflow-x:clip}
+main,.workspace,.page-heading,.card,.exercise-grid,.home-grid,.dashboard-grid,.leaderboard-layout {min-width:0}
+.workspace {width:100%}
+.table-scroll {max-width:100%;overscroll-behavior-inline:contain}
+.hard-answer-fill {margin-top:12px;white-space:normal}
+.password-field {position:relative;display:block;width:100%;min-width:0}
+.password-field input {padding-right:52px!important}
+.password-toggle {position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:40px;height:36px;padding:0;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ton-muted);cursor:pointer}
+.password-toggle:hover {background:var(--ton-hover);color:var(--ton-text)}
+.password-toggle svg {width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.password-toggle:focus-visible {outline:2px solid var(--ton-accent);outline-offset:1px}
+.contest-stat-filter .stats-filter-select select {font-weight:600;cursor:pointer}
+.contest-stat-filter>.button {white-space:nowrap}
+@media(max-width:620px) {
+  .contest-stat-filter .stats-filter-field,.contest-stat-filter>.button {width:100%;flex-basis:100%}
+  .hard-block {overflow-wrap:anywhere}
+}

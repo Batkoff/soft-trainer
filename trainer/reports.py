@@ -14,6 +14,7 @@ def standings(contest: Contest, live=False) -> list[dict]:
         if user.points != previous_score:
             place = index
         rows.append({"place": place, "user_id": user.pk, "name": display_name(user),
-            "points": user.points, "completed": user.completed, "average": round(user.average or 0, 1)})
+            "username": user.username, "points": user.points, "completed": user.completed,
+            "average": round(user.average or 0, 1)})
         previous_score = user.points
     return rows

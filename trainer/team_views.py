@@ -142,6 +142,8 @@ def delete_account(request, user_id):
     if not request.user.is_superuser:
         raise PermissionDenied
     person = get_object_or_404(get_user_model(), pk=user_id)
+    return_to_admin = request.GET.get("return_to") == "admin"
+    destination = "admin:auth_user_changelist" if return_to_admin else "team"
     if person.is_superuser or person.pk == request.user.pk:
         raise PermissionDenied
     attempts = Attempt.objects.filter(user=person)
@@ -157,12 +159,12 @@ def delete_account(request, user_id):
         except ValidationError as error:
             for message in error.messages:
                 messages.error(request, message)
-            return redirect("team")
+            return redirect(destination)
         messages.success(request, f"Аккаунт удалён. Обезличено строк в итоговых рейтингах: {deleted['archived_ranks']}.")
-        return redirect("team")
+        return redirect(destination)
     return render(request, "trainer/delete_account.html", {
         "person": person, "name": display_name(person), "attempt_count": attempts.count(),
         "assignment_count": assignments.count(), "archived_ranks_count": archived_ranks,
-        "direct_reports_count": direct_reports_count,
+        "direct_reports_count": direct_reports_count, "return_to_admin": return_to_admin,
         "nav": "team",
     })

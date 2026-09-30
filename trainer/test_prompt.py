@@ -66,10 +66,11 @@ class PromptTests(TestCase):
         from .evaluation_prompt import default_evaluation_prompt
         prompt = default_evaluation_prompt()
         self.assertEqual(EvaluationPrompt().text, prompt)
-        self.assertEqual(EvaluationPrompt().version, 6)
+        self.assertEqual(EvaluationPrompt().version, 7)
         self.assertLessEqual(len(prompt), 20000)
         normalized = " ".join(prompt.split())
         self.assertIn("Простое копирование", normalized)
+        self.assertIn("ответь на каждый запрос", normalized)
         self.assertIn("Итоговый рейтинговый балл считает сервер", normalized)
 
     def test_admin_edit_permissions_validation_and_audit(self):
