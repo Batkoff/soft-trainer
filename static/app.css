@@ -1352,7 +1352,7 @@ input:not([type=hidden]),select,.form-card textarea {
   margin:18px 0 7px
 }
 
-.login-card button {
+.login-card form > button[type=submit] {
   margin-top:26px
 }
 
@@ -2219,18 +2219,52 @@ footer {display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
 /* Узкая ширина остаётся у страницы; прокрутка нужна только таблицам внутри карточек. */
 html,body {width:100%;max-width:100%;overflow-x:clip}
 main,.workspace,.page-heading,.card,.exercise-grid,.home-grid,.dashboard-grid,.leaderboard-layout {min-width:0}
-.workspace {width:100%}
+.workspace {width:auto}
+.workspace.public {width:100%}
 .table-scroll {max-width:100%;overscroll-behavior-inline:contain}
-.hard-answer-fill {margin-top:12px;white-space:normal}
+.editor-action-buttons {display:flex;align-items:stretch;justify-content:flex-end;flex-wrap:wrap;gap:10px;min-width:0}
+.editor-action-buttons .button {width:auto;flex:1 1 auto}
+.editor-actions .hard-answer-fill {margin:0;border-color:var(--ton-accent);background:var(--ton-accent-soft);color:var(--ton-accent)}
+.editor-actions .hard-answer-fill:hover {background:var(--ton-hover)}
+.editor-actions .hard-answer-fill svg {width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .password-field {position:relative;display:block;width:100%;min-width:0}
-.password-field input {padding-right:52px!important}
-.password-toggle {position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:40px;height:36px;padding:0;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ton-muted);cursor:pointer}
+.password-field input {display:block;width:100%;margin:0;padding-right:52px!important}
+.password-field .password-toggle {margin:0;position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:40px;height:36px;padding:0;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ton-muted);cursor:pointer}
 .password-toggle:hover {background:var(--ton-hover);color:var(--ton-text)}
 .password-toggle svg {width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .password-toggle:focus-visible {outline:2px solid var(--ton-accent);outline-offset:1px}
-.contest-stat-filter .stats-filter-select select {font-weight:600;cursor:pointer}
-.contest-stat-filter>.button {white-space:nowrap}
+
 @media(max-width:620px) {
-  .contest-stat-filter .stats-filter-field,.contest-stat-filter>.button {width:100%;flex-basis:100%}
+  .editor-action-buttons {width:100%;display:grid;grid-template-columns:1fr}
   .hard-block {overflow-wrap:anywhere}
+}
+
+/* Выбор конкурса раскрывается в общей теме, ссылки сохраняют период и сотрудника. */
+.contest-stat-filter {display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 24px}
+.stats-filter-intro {min-width:0}
+.stats-filter-intro h2 {font-size:17px;letter-spacing:0;margin-bottom:4px}
+.contest-picker {position:relative;flex:1 1 420px;max-width:620px;min-width:0}
+.contest-picker summary {display:flex;align-items:center;justify-content:space-between;gap:20px;list-style:none;cursor:pointer;padding:14px 16px;border:1px solid var(--ton-border);border-radius:12px;background:var(--ton-raised)}
+.contest-picker summary::-webkit-details-marker {display:none}
+.contest-picker summary:hover,.contest-picker[open] summary {border-color:var(--ton-accent)}
+.contest-picker summary>span,.contest-picker-option>span:first-child {min-width:0}
+.contest-picker strong {display:block;font-size:15px;line-height:1.4;overflow-wrap:anywhere}
+.contest-picker small {display:block;margin-top:4px;color:var(--ton-muted);font-size:12px}
+.contest-picker summary svg {flex:0 0 20px;width:20px;height:20px;fill:none;stroke:var(--ton-accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.contest-picker[open] summary svg {transform:rotate(180deg)}
+.contest-picker-panel {position:absolute;top:calc(100% + 8px);left:0;right:0;z-index:30;max-height:360px;overflow-y:auto;padding:6px;border:1px solid var(--ton-border);border-radius:14px;background:var(--ton-surface);box-shadow:0 16px 32px #0006;overscroll-behavior:contain}
+.contest-picker-option {display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px;border:1px solid transparent;border-radius:9px}
+.contest-picker-option:hover {text-decoration:none;background:var(--ton-hover)}
+.contest-picker-option.selected {background:var(--ton-accent-soft);border-color:var(--ton-accent)}
+.contest-picker-check {color:var(--ton-accent);font-size:20px}
+.editor-submit-note {margin-top:12px;text-align:right;font-size:12px}
+@media(max-width:1100px) {
+  .editor-action-buttons {width:100%;display:grid;grid-template-columns:1fr}
+}
+@media(max-width:900px) and (min-width:621px) {
+  .editor-action-buttons {display:flex}
+}
+@media(max-width:700px) {
+  .contest-stat-filter {align-items:stretch;flex-direction:column;gap:14px;padding:18px}
+  .contest-picker {flex:auto;width:100%;max-width:none}
 }

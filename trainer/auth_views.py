@@ -16,6 +16,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.views.decorators.http import require_http_methods
 
+from .email_configuration import SMTPConfigurationError, validate_smtp_configuration
 from .forms import RegistrationForm
 from .models import AuditEvent
 
@@ -66,8 +67,11 @@ def _activation_url(request, user):
 
 
 def _send_activation_email(request, user):
-    if settings.EMAIL_BACKEND.endswith("smtp.EmailBackend") and not settings.EMAIL_HOST.strip():
-        raise ActivationEmailError("SMTP_HOST_NOT_CONFIGURED", "smtp_configuration")
+    try:
+        validate_smtp_configuration()
+    except SMTPConfigurationError as error:
+        raise ActivationEmailError(error.code, "smtp_configuration",
+                                   {"setting": error.setting, "instruction": str(error)}) from error
     try:
         activation_url = _activation_url(request, user)
         body = render_to_string("registration/activation_email.txt", {

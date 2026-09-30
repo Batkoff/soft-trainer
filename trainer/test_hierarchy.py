@@ -1,5 +1,6 @@
 """Проверяем доступ по подчинённости через URL и прямые вызовы сервисов."""
 from datetime import timedelta
+from urllib.parse import parse_qs, urlparse
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.test import TestCase, override_settings
@@ -99,6 +100,25 @@ class HierarchyTests(TestCase):
         self.assertEqual(response.context["chart_days"], 14)
         self.assertEqual(len(response.context["dashboard"]["days"]), 14)
         self.assertEqual(self.client.get("/analytics/?contest=all&days=90").context["chart_days"], 7)
+
+    def test_contest_picker_preserves_scope_and_period_and_resets_pages(self):
+        self.client.force_login(self.leader)
+        response = self.client.get(
+            f"/analytics/?contest=00{self.contest.pk}&days=14&person={self.employee.pk}&page=2&people_page=3")
+        self.assertEqual(response.status_code, 200)
+        options = response.context["contest_filters"]
+        self.assertEqual(sum(option["selected"] for option in options), 1)
+        self.assertEqual(response.context["active_contest_filter"]["title"], self.contest.title)
+        for option in options:
+            query = parse_qs(urlparse(option["url"]).query)
+            self.assertEqual(query["person"], [str(self.employee.pk)])
+            self.assertEqual(query["days"], ["14"])
+            self.assertNotIn("page", query)
+            self.assertNotIn("people_page", query)
+        current = self.client.get(options[0]["url"])
+        self.assertEqual(current.context["contest"], self.contest)
+        self.assertEqual(current.context["stats"]["graded"], 1)
+        self.assertEqual(current.context["active_contest_filter"]["title"], "Текущий конкурс")
 
     def test_guide_is_for_every_user_and_sandbox_is_admin_only(self):
         self.client.force_login(self.leader)

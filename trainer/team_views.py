@@ -79,10 +79,36 @@ def analytics(request):
         query["days"] = str(option_days)
         chart_options.append({"days": option_days, "active": option_days == chart_days,
                               "url": f"{request.path}?{query.urlencode()}"})
+    # Ссылки выбора сохраняют сотрудника и период, но сбрасывают страницы списков.
+    filter_query = request.GET.copy()
+    for key in ("contest", "archive", "page", "people_page"):
+        filter_query.pop(key, None)
+    filter_query["days"] = str(chart_days)
+
+    selected_filter_value = "all" if show_all_contests else (
+        str(contest.pk) if contest and request.GET.get("contest") else "")
+
+    def filter_option(value, title, description):
+        query = filter_query.copy()
+        if value:
+            query["contest"] = str(value)
+        return {"title": title, "description": description,
+                "selected": selected_filter_value == str(value),
+                "url": f"{request.path}?{query.urlencode()}"}
+
+    contest_filters = [
+        filter_option("", "Текущий конкурс",
+                      f"{contest.title} · {contest.phase_label}" if contest and not request.GET.get("contest")
+                      else "Перейти к текущему конкурсу"),
+        filter_option("all", "Все конкурсы", "Общие результаты за всё время"),
+    ]
+    contest_filters.extend(filter_option(item.pk, item.title, item.phase_label)
+                           for item in visible_contests(request.user))
+    active_contest_filter = next(option for option in contest_filters if option["selected"])
     return render(request, "trainer/analytics.html", {"nav": "analytics", "dashboard": dashboard_data(graded, chart_days), "stats": stats, "target": target,
         "target_name": display_name(target) if target else "", "rows": rows, "recent": page,
         "rows_page": rows_page, "contest": contest, "show_all_contests": show_all_contests,
-        "filter_contests": visible_contests(request.user), "chart_days": chart_days,
+        "contest_filters": contest_filters, "active_contest_filter": active_contest_filter, "chart_days": chart_days,
         "chart_options": chart_options,
         "recent_page_links": page_links(request, page),
         "rows_page_links": page_links(request, rows_page, "people_page"),

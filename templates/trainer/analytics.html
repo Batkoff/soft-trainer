@@ -2,7 +2,15 @@
 {% block title %}Статистика — Тон{% endblock %}
 {% block content %}
 <div class="page-heading"><div><p class="eyebrow">{% if team_access %}КОМАНДА И РЕЗУЛЬТАТЫ{% else %}МОИ РЕЗУЛЬТАТЫ{% endif %}</p><h1>{% if target %}{{ target_name }}{% elif team_access %}Статистика команды{% else %}Моя статистика{% endif %}</h1><p class="muted">Конкурсные попытки · {% if contest %}{{ contest.title }}{% elif show_all_contests %}все конкурсы{% else %}текущий конкурс не запущен{% endif %}</p></div>{% if target %}<a class="button" href="{% url 'analytics' %}{% if contest %}?contest={{ contest.pk }}{% elif show_all_contests %}?contest=all{% endif %}">← К общей статистике</a>{% endif %}</div>
-<form method="get" class="card stats-filter contest-stat-filter"><div class="stats-filter-field"><label for="contest-filter">Период статистики</label><div class="stats-filter-select"><select name="contest" id="contest-filter"><option value="" {% if not show_all_contests and not request.GET.contest %}selected{% endif %}>Текущий конкурс</option><option value="all" {% if show_all_contests %}selected{% endif %}>Все конкурсы</option>{% for item in filter_contests %}<option value="{{ item.pk }}" {% if item.pk == contest.pk %}selected{% endif %}>{{ item.title }} · {{ item.phase_label }}</option>{% endfor %}</select><span aria-hidden="true">⌄</span></div></div><input type="hidden" name="days" value="{{ chart_days }}">{% if target %}<input type="hidden" name="person" value="{{ target.pk }}">{% endif %}<button class="button primary" type="submit">Показать статистику <span aria-hidden="true">→</span></button></form>
+<section class="card contest-stat-filter" aria-label="Выбор конкурса">
+  <div class="stats-filter-intro"><h2>Конкурс</h2><p class="small muted">Выберите результаты для просмотра</p></div>
+  <details class="contest-picker" data-contest-picker>
+    <summary><span><strong>{{ active_contest_filter.title }}</strong><small>{{ active_contest_filter.description }}</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary>
+    <nav class="contest-picker-panel" aria-label="Конкурсы для статистики">
+      {% for option in contest_filters %}<a class="contest-picker-option{% if option.selected %} selected{% endif %}" href="{{ option.url }}"{% if option.selected %} aria-current="true"{% endif %}><span><strong>{{ option.title }}</strong><small>{{ option.description }}</small></span>{% if option.selected %}<span class="contest-picker-check" aria-hidden="true">✓</span>{% endif %}</a>{% endfor %}
+    </nav>
+  </details>
+</section>
 <div class="metrics section"><div class="card"><span class="muted">Участников</span><strong>{{ stats.participants }}</strong></div><div class="card"><span class="muted">Проверено</span><strong>{{ stats.graded }}<small> / {{ stats.started }}</small></strong></div><div class="card"><span class="muted">Средняя оценка</span><strong>{{ stats.average }}</strong></div><div class="card"><span class="muted">Баллов</span><strong>{{ stats.points }}</strong></div></div>
 <div class="analytics-notes"><span>Hard-ошибки: <strong>{{ stats.hard_errors }}</strong></span><span>По таймеру: <strong>{{ stats.timed_out }}</strong></span><span>На проверке: <strong>{{ stats.pending }}</strong></span><span>Нужен пересмотр: <strong>{{ stats.review }}</strong></span></div>
 {% include "trainer/dashboard.html" %}

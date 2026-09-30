@@ -15,6 +15,18 @@ for (const select of document.querySelectorAll("[data-auto-submit]")) {
   select.addEventListener("change", () => select.form.requestSubmit());
 }
 
+for (const picker of document.querySelectorAll("[data-contest-picker]")) {
+  document.addEventListener("click", event => {
+    if (picker.open && !picker.contains(event.target)) picker.open = false;
+  });
+  picker.addEventListener("keydown", event => {
+    if (event.key === "Escape" && picker.open) {
+      picker.open = false;
+      picker.querySelector("summary").focus();
+    }
+  });
+}
+
 const eyeIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
 const eyeOffIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 5.2A10.7 10.7 0 0 1 12 5c6.4 0 10 7 10 7a14 14 0 0 1-3.1 3.8M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7c1 0 2-.2 2.8-.5"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg>';
 for (const input of document.querySelectorAll('input[type="password"]')) {

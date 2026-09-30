@@ -16,18 +16,17 @@
 .ton-user {display:flex;align-items:center;gap:10px;margin-top:15px;padding-top:16px;border-top:1px solid var(--ton-border)}
 .ton-user strong {display:block;font-size:13px;overflow-wrap:anywhere}.ton-user small {display:block;font-size:11px;color:var(--ton-muted)}
 .ton-avatar {font-size:22px;flex-shrink:0}.ton-sidebar .ton-logout {background:none;border:0;padding:14px 0 0;font:inherit;font-size:12px;color:var(--ton-muted);cursor:pointer}
-.workspace:not(.public) {margin-left:242px}
+.workspace:not(.public) {margin-left:242px;width:calc(100% - 242px)}
 body.ton-admin #container {margin-left:242px;width:calc(100% - 242px);min-width:0}
 body.ton-admin #main .content {margin-left:0;min-width:0}
 body.ton-admin #header {padding:20px 30px;min-height:74px;box-sizing:border-box}
 body.ton-admin .main>nav.sticky,body.ton-admin #toggle-nav-sidebar {display:none}
-.stats-filter {display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap}.stats-filter-field {flex:1 1 300px;min-width:0}.stats-filter-field>label {display:block;margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.7px;color:var(--ton-muted);text-transform:uppercase}.stats-filter-select {position:relative;min-width:0}.stats-filter-select select {width:100%;min-width:0;min-height:48px;padding:10px 42px 10px 14px;border:1px solid var(--ton-border);border-radius:12px;background:var(--ton-raised);color:var(--ton-text);appearance:none}.stats-filter-select>span {position:absolute;right:14px;top:50%;transform:translateY(-55%);color:var(--ton-accent);font-size:21px;pointer-events:none}.stats-filter>.button {min-height:48px;padding-inline:19px}
 .supervisor-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}.supervisor-card {padding:20px;border:1px solid var(--ton-border);border-radius:16px;background:var(--ton-surface)}.supervisor-card strong {display:block;margin-top:8px}
 @media(max-width:900px) {
 .ton-sidebar {position:relative;width:100%;max-width:100%;inset:auto;padding:16px;border-right:0;border-bottom:1px solid var(--ton-border);overflow:visible}
 .ton-brand {font-size:23px}.ton-sidebar nav {display:flex;gap:5px;overflow-x:auto;margin-top:15px}.ton-nav-label,.ton-sidebar-bottom {display:none}.ton-sidebar .ton-nav-link {white-space:nowrap;margin:0;padding:8px 10px}.ton-nav-link>span {font-size:18px}
 .workspace:not(.public),body.ton-admin #container {margin-left:0;width:100%}
-body.ton-admin #header {padding:16px}.stats-filter {align-items:stretch;flex-direction:column}.stats-filter>.button {width:100%}
+body.ton-admin #header {padding:16px}
 }
 
 @media(max-width:900px) {

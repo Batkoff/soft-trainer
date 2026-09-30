@@ -132,3 +132,23 @@ class AccountEmailTests(TestCase):
         self.assertIn("smtp_password", diagnostic)
         self.assertIn("ascii", diagnostic)
         self.assertNotIn("секрет", diagnostic)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend",
+                       EMAIL_HOST="smtp.example.com", EMAIL_HOST_USER="smtp-user",
+                       EMAIL_HOST_PASSWORD="пароль", DEFAULT_FROM_EMAIL="sender@example.com")
+    def test_invalid_smtp_password_is_identified_before_sending_or_creating_account(self):
+        with patch("trainer.auth_views.send_mail") as send:
+            response = self.client.post(reverse("register"), {
+                "email": "configuration-fail@example.com",
+                "password1": "long-registration-password-123",
+                "password2": "long-registration-password-123",
+            })
+        send.assert_not_called()
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(get_user_model().objects.filter(email="configuration-fail@example.com").exists())
+        self.assertContains(response, response["X-Request-ID"], count=1)
+        event = AuditEvent.objects.get(action="registration_email_failed")
+        self.assertEqual(event.details["failure_stage"], "smtp_configuration")
+        self.assertEqual(event.details["exception_metadata"]["setting"], "EMAIL_HOST_PASSWORD")
+        self.assertEqual(event.details["exception_type"], "SMTP_CREDENTIAL_NON_ASCII")
+        self.assertNotIn("пароль", json.dumps(event.details, ensure_ascii=False))
