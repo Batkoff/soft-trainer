@@ -8,6 +8,8 @@
 !config/**
 !trainer/
 !trainer/**
+!dialogues/
+!dialogues/**
 !templates/
 !templates/**
 !static/
