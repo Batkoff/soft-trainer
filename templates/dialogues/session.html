@@ -1,0 +1,20 @@
+{% extends 'dialogues/base.html' %}{% load static %}
+{% block content %}
+<div class="breadcrumb"><a href="{% url 'dialogues:index' %}">← Диалоги · тест</a><a href="{% url 'admin:dialogues_dialoguetrace_changelist' %}?session__id__exact={{ session.pk }}">Диагностика запросов ↗</a></div>
+<div class="page-heading compact dialogue-heading"><div><p class="eyebrow">ТЕСТОВЫЙ ДИАЛОГ · БЕЗ РЕЙТИНГА</p><h1>{{ session.snapshot.title }}</h1><p class="muted small">Промпты v{{ session.prompts.version }} · {{ session.profile.model }}</p></div><div class="timer" id="dialogue-timer" hidden><span>НА ЭТОТ ОТВЕТ</span><strong>—</strong></div></div>
+<div id="dialogue-app" data-base="{% url 'dialogues:session' session.pk %}">
+  <div class="dialogue-status" id="dialogue-status" role="status"></div>
+  <div class="message error" id="dialogue-error" role="alert" hidden></div>
+  <div class="dialogue-layout">
+    <section class="card dialogue-chat" aria-label="Переписка"><div class="section-heading"><h2>Переписка с клиентом</h2><span class="badge neutral" id="dialogue-progress"></span></div><div id="dialogue-messages" aria-live="polite" aria-relevant="additions"></div><p class="muted small" id="dialogue-empty">Первая реплика появится после начала хода.</p></section>
+    <section class="card dialogue-compose" id="dialogue-compose" hidden><p class="eyebrow">ВАШ ОТВЕТ КЛИЕНТУ</p><div class="dialogue-hard"><strong id="dialogue-topic"></strong><p id="dialogue-hard" class="preserve"></p></div><p class="small muted">Сохраните смысл hard-ответа и учтите предыдущую переписку.</p>
+      <form id="dialogue-form">{% csrf_token %}<label class="sr-only" for="dialogue-answer">Ваш ответ</label><textarea id="dialogue-answer" maxlength="6000" placeholder="Напишите ответ клиенту…"></textarea><div class="editor-meta"><span id="dialogue-save" role="status">Черновик сохранён</span><span id="dialogue-count">0 / 6000</span></div><div class="dialogue-links"><button class="button dialogue-fill" type="button" id="dialogue-fill">Подставить hard-ответ</button><button class="button primary" type="submit" id="dialogue-send">Отправить →</button></div></form>
+    </section>
+  </div>
+  <div class="dialogue-links section"><button class="button primary" id="dialogue-open" type="button" hidden>Начать следующий ход →</button><button class="button primary" id="dialogue-retry" type="button" hidden>Повторить запрос</button></div>
+  <section class="section" id="dialogue-result" hidden aria-label="Разбор диалога"></section>
+  <noscript><p class="message">Для прохождения диалога необходимо включить JavaScript.</p></noscript>
+</div>
+{{ initial|json_script:'dialogue-initial' }}
+<script src="{% static 'dialogues.js' %}?v={{ app_version }}" defer></script>
+{% endblock %}

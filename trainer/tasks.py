@@ -135,6 +135,8 @@ async def recover_jobs(timestamp: int):
     expired = Attempt.objects.filter(status=Attempt.Status.WRITING, expires_at__lte=timezone.now()).values_list("pk", flat=True)[:100]
     for attempt_id in await sync_to_async(list)(expired):
         await sync_to_async(finish_attempt)(attempt_id, expired=True)
+    from dialogues.services import recover as recover_dialogues
+    await sync_to_async(recover_dialogues)()
     # Завершение конкурса не зависит от открытой вкладки администратора.
     # Если остались спорные/непроверенные ответы, сервис оставит конкурс ACTIVE
     # до ручного решения и не потеряет их из финального рейтинга.
@@ -145,3 +147,6 @@ async def recover_jobs(timestamp: int):
 
 # Регистрация отдельной задачи перепроверки в том же PostgreSQL-воркере.
 from .rechecks import evaluate_recheck  # noqa: E402,F401
+
+# Тестовые диалоги используют тот же воркер и отдельные таблицы.
+from dialogues.tasks import process_dialogue, expire_dialogue_turn  # noqa: E402,F401

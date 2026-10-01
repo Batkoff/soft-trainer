@@ -45,7 +45,7 @@ jobs:
         run: |
           docker compose exec -T web python manage.py check
           docker compose exec -T web python manage.py makemigrations --check --dry-run
-          docker compose exec -T web python manage.py test trainer
+          docker compose exec -T web python manage.py test trainer dialogues
       - name: Container logs
         if: failure() && steps.config.outcome == 'success' && steps.docker.outcome == 'success'
         run: docker compose logs --no-color --tail=100 init web worker proxy

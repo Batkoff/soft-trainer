@@ -8,6 +8,7 @@
   <div><p class="admin-eyebrow">УПРАВЛЕНИЕ · ТОН</p><h1>Задавайте тон обучению</h1><p>Готовьте задания, запускайте конкурсы и разбирайте ответы команды.</p></div>
   <a class="admin-primary" href="{% url 'analytics' %}">Посмотреть результаты ↗</a>
 </section>
+<section class="admin-section"><div class="admin-section-heading"><h2>Диалоги · тест</h2><span>Только администратор · без рейтинга</span></div><a class="admin-primary" href="{% url 'dialogues:index' %}">Открыть лабораторию диалогов →</a></section>
 <div class="admin-workflow" aria-label="Порядок запуска конкурса"><span><b>1</b> Подготовьте задания</span><span><b>2</b> Настройте конкурс</span><span><b>3</b> Следите за результатами</span></div>
 {% for app in app_list|dictsortreversed:'app_label' %}
 <section class="admin-section" aria-labelledby="section-{{ app.app_label }}">

@@ -27,7 +27,7 @@ DATABASES = {"default": {
 INSTALLED_APPS = [
     "config.admin.TonAdminConfig", "django.contrib.auth", "django.contrib.contenttypes",
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
-    "procrastinate.contrib.django", "trainer",
+    "procrastinate.contrib.django", "trainer", "dialogues",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware", "django.contrib.sessions.middleware.SessionMiddleware",

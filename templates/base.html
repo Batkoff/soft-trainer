@@ -4,7 +4,7 @@
 <title>{% block title %}Тон — тренажёр общения{% endblock %}</title>
 <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
 <link rel="stylesheet" href="{% static 'theme.css' %}?v={{ app_version }}">
-<link rel="stylesheet" href="{% static 'app.css' %}?v={{ app_version }}"><link rel="stylesheet" href="{% static 'sidebar.css' %}?v={{ app_version }}"><script src="{% static 'vendor/htmx.min.js' %}" defer></script><script src="{% static 'app.js' %}?v={{ app_version }}" defer></script></head>
+<link rel="stylesheet" href="{% static 'app.css' %}?v={{ app_version }}"><link rel="stylesheet" href="{% static 'sidebar.css' %}?v={{ app_version }}"><script src="{% static 'vendor/htmx.min.js' %}" defer></script><script src="{% static 'app.js' %}?v={{ app_version }}" defer></script>{% block extra_head %}{% endblock %}</head>
 <body><a class="skip" href="#main">К содержимому</a>
 {% if user.is_authenticated %}
 {% include 'includes/sidebar.html' %}

@@ -32,6 +32,7 @@ urlpatterns = [
     path("password-change/done/", auth_views.PasswordChangeDoneView.as_view(
         template_name="registration/password_change_done.html",
     ), name="password_change_done"),
+    path("admin/dialogue-lab/", include("dialogues.urls")),
     path("admin/", admin.site.urls),
     path("", include("trainer.urls")),
 ]

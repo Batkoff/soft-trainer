@@ -43,6 +43,7 @@ python scripts/start.py --reset-admin
 
 - [Установка пошагово](docs/GETTING_STARTED.md)
 - [Устройство проекта](docs/ARCHITECTURE.md)
+- [Диалоги: тестовый режим администратора](docs/DIALOGUES.md)
 - [Проверки](docs/VERIFICATION.md)
 - [История версий](CHANGELOG.md)
 
